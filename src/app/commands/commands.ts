@@ -1,9 +1,8 @@
 import { Notice, TFile, type App } from 'obsidian'
-import * as path from 'node:path'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
 import { BookParser } from '../services/book-parser'
-import { BookExporter } from '../services/exporter'
+import { BookExporter, expandHome } from '../services/exporter'
 import { BookValidator, formatReport } from '../services/validator'
 import { log } from '../../utils/log'
 import { openExternal } from '../../utils/open-path'
@@ -53,6 +52,13 @@ export function registerCommands(plugin: BookExporterPlugin): void {
 /* ------------------------------------------------------------------ */
 
 async function runExport(ctx: CommandContext, requested: ExportFormat[] | null): Promise<void> {
+    if (ctx.plugin.settings.defaultOutputDir.trim().length === 0) {
+        new Notice(
+            'Output folder is not configured. Set "Default output folder" in Settings → Book Exporter (e.g. ~/Downloads).',
+            10000
+        )
+        return
+    }
     const setup = await prepareBook(ctx)
     if (setup === null) return
     const { book, exporter } = setup
@@ -109,17 +115,13 @@ async function runValidate(ctx: CommandContext): Promise<void> {
 }
 
 async function openOutputFolder(ctx: CommandContext): Promise<void> {
-    const adapter = ctx.app.vault.adapter
-    const getFullPath = (adapter as { getFullPath?: (p: string) => string }).getFullPath
-    const relative = ctx.plugin.settings.defaultOutputDir
-    const absolute =
-        typeof getFullPath === 'function' ? getFullPath.call(adapter, relative) : relative
-    if (absolute === undefined) {
-        new Notice('Cannot resolve output folder.')
+    const raw = ctx.plugin.settings.defaultOutputDir.trim()
+    if (raw.length === 0) {
+        new Notice('Output folder is not configured. Set it in Settings → Book Exporter.')
         return
     }
     try {
-        await openExternal(absolute)
+        await openExternal(expandHome(raw))
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         new Notice(`Could not open folder: ${truncate(msg, 200)}`)
@@ -145,12 +147,7 @@ async function prepareBook(
             new Notice(`Cannot export — ${formatReport(report)}`, 8000)
             return null
         }
-        const pluginConfigDir = path.join(
-            ctx.app.vault.configDir,
-            'plugins',
-            ctx.plugin.manifest.id
-        )
-        const exporter = new BookExporter(ctx.app, ctx.plugin.settings, pluginConfigDir)
+        const exporter = new BookExporter(ctx.app, ctx.plugin.settings)
         return { book, exporter }
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

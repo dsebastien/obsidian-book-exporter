@@ -4,8 +4,8 @@ These are mandatory invariants. Changes require explicit user approval.
 
 1. **Desktop only.** The plugin shells out to `pandoc`. `manifest.json` MUST keep `isDesktopOnly: true`.
 2. **Any Markdown note can act as a book manifest.** The plugin MUST NOT require a specific tag, folder, or filename. The active note is treated as the manifest; whether it's actually shippable is decided by the validator (chapters present, links resolve, etc.).
-3. **Path resolution is always vault-aware.** Code MUST use `app.vault.adapter.getFullPath(...)` to translate vault-relative paths to absolute filesystem paths. Never use `process.cwd()` or relative paths against an unknown CWD.
-4. **No vault writes outside `defaultOutputDir` and the plugin's tmp dir.** The plugin must not silently create files anywhere else.
+3. **Output directory is an absolute filesystem path, configured by the user.** Default is empty; the plugin MUST refuse to export with a clear Notice until the user sets it. `~` is expanded to the home directory. Per-book `book_export.output_dir` overrides the global setting and follows the same rules.
+4. **Temp files live in the OS temp directory.** Use `os.tmpdir()` + `fs.mkdtemp()`. The plugin MUST NOT write temp files inside the vault, inside its own plugin folder, or anywhere else outside the configured output directory and the OS temp directory.
 5. **Pandoc is the single external dependency.** The plugin MUST NOT add other tool dependencies (Calibre, KindleGen, custom binaries) without explicit approval. PDF engine selection (Typst / xelatex / etc.) is the user's choice and the plugin only forwards the engine name to Pandoc.
 6. **Validation runs before every export.** If the validator reports `hasErrors`, the export is aborted with a Notice; warnings do not block.
 7. **Temp files are cleaned up after every export** unless `keepTempFiles` is enabled.

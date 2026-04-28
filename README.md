@@ -3,6 +3,8 @@
 Write a book inside an Obsidian vault — one **manifest note** acts as the table of contents, each chapter / section is its own note. The plugin compiles the structure into a single manuscript and exports to **EPUB** and **PDF** via [Pandoc](https://pandoc.org).
 
 > Desktop only. Requires `pandoc` on `$PATH` (or configure the path in settings). For PDF, [Typst](https://typst.app) is the recommended engine — single small binary, no LaTeX install needed. LaTeX engines (xelatex, tectonic) are still supported if you prefer.
+>
+> **Configure an output folder before exporting.** Settings → Book Exporter → Default output folder: an absolute filesystem path (e.g. `~/Downloads`). The plugin refuses to export until this is set. Temp files live in the OS temp directory — never in your vault or plugin folder.
 
 ## How it works
 
@@ -32,6 +34,7 @@ book_export:
   pdf_engine: typst
   page_break_per_chapter: true
   sections_to_skip: [Related, References, Title Options, Target Audience]
+  output_dir: "~/Books/The Context Layer"
 ---
 
 # The Context Layer

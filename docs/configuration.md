@@ -12,7 +12,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | Pandoc path | string | `pandoc` | Required. Full path or PATH name. |
-| Default output folder | string | `Exports/Books` | Vault-relative folder for exports. Created if missing. |
+| Default output folder | string | (empty — required) | **Absolute filesystem path** where exported books are written. `~` is expanded to your home directory. The plugin refuses to export until this is set. Examples: `~/Downloads`, `/home/me/Books`. |
 | Default formats | comma list | `epub,pdf` | Used by **Export to all formats** when the manifest doesn't specify any. |
 | PDF engine | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf`. |
 | Default language | BCP-47 | `en` | Used when the manifest doesn't set `language`. |
@@ -30,7 +30,7 @@ Add a `book_export:` block to the manifest's frontmatter. All keys are optional;
 
 ```yaml
 book_export:
-  output_dir: "60 Archives/Books/Exports"
+  output_dir: "~/Books/The Context Layer"
   pdf_engine: typst
   toc_depth: 3
   include_toc: true
@@ -44,7 +44,7 @@ book_export:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `output_dir` | string | Vault-relative output folder for this book. |
+| `output_dir` | string | Absolute filesystem path for this book's exports. Supports `~`. Overrides the global setting. |
 | `pdf_engine` | enum | Overrides the global PDF engine. |
 | `toc_depth` | integer | Overrides the global TOC depth. |
 | `include_toc` | boolean | Whether to include a TOC for this book. |
@@ -52,6 +52,11 @@ book_export:
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
 | `sections_to_skip` | list | Heading names (case-insensitive). Applied to both the manifest body and linked notes. Replaces — does not extend — the global setting. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
+
+## Where files go
+
+- **Exports** — written to the configured **Default output folder** (or per-book `book_export.output_dir`). Absolute filesystem paths only; `~` is expanded. The plugin refuses to export when the folder is not configured.
+- **Temp files** — created inside the OS temp directory (`os.tmpdir()`, e.g. `/tmp/obsidian-book-exporter-<book>-<random>/` on Linux). Never inside your vault. Cleaned up automatically after each export unless **Keep temporary files** is on.
 
 ## External tools
 

@@ -48,14 +48,16 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Default output folder')
-            .setDesc('Vault-relative folder for exported files.')
+            .setDesc(
+                'Required. Absolute filesystem path where exported books are written. `~` is expanded to your home directory. The plugin refuses to export until this is set. Example: ~/Downloads or /home/me/Books.'
+            )
             .addText((t) =>
                 t
-                    .setPlaceholder('Exports/Books')
+                    .setPlaceholder('~/Downloads')
                     .setValue(this.plugin.settings.defaultOutputDir)
                     .onChange(async (value) => {
                         await this.plugin.updateSettings((draft) => {
-                            draft.defaultOutputDir = value.trim() || 'Exports/Books'
+                            draft.defaultOutputDir = value.trim()
                         })
                     })
             )

@@ -3,7 +3,11 @@ import type { ExportFormat, PdfEngine } from '../domain/book-manifest.intf'
 export interface PluginSettings {
     /** Path or PATH name of the pandoc binary. */
     pandocPath: string
-    /** Vault-relative default output folder for exports. */
+    /**
+     * Absolute filesystem path where exported books are written. Supports
+     * `~` expansion (e.g. `~/Downloads`). Empty string means "not yet
+     * configured" — the plugin refuses to export until the user sets it.
+     */
     defaultOutputDir: string
     defaultPdfEngine: PdfEngine
     defaultLanguage: string
@@ -39,7 +43,7 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     pandocPath: 'pandoc',
-    defaultOutputDir: 'Exports/Books',
+    defaultOutputDir: '',
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
     defaultAuthors: [],

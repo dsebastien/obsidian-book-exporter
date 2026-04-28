@@ -36,7 +36,7 @@ The plugin reads these fields. Anything else is ignored.
 
 ```yaml
 book_export:
-  output_dir: "60 Archives/Books/Exports"
+  output_dir: "~/Books/My Book"
   pdf_engine: typst                         # typst|weasyprint|xelatex|tectonic|wkhtmltopdf
   toc_depth: 2
   include_toc: true
@@ -114,7 +114,8 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
 
 - Computes output filename: `<slug(title)>_<YYYY-MM-DD>.<ext>` (slugify the title, fall back to book note basename).
 - Invokes the Pandoc runner once per requested format. Captures stderr for the "operation failed" notice.
-- All temp files live under `{vault}/.obsidian/plugins/obsidian-book-exporter/.tmp/<bookId>/`. Cleaned up on success unless settings say otherwise (debug mode).
+- All temp files live in the OS temp directory (`os.tmpdir()`), in a per-export folder named `obsidian-book-exporter-<bookSlug>-<random>` (created via `fs.mkdtemp`). Never inside the vault. Cleaned up on success unless settings say otherwise (debug mode).
+- Output directory is an **absolute filesystem path** configured by the user (with `~` expansion). Empty default; plugin refuses to export until set.
 
 ### PandocRunner
 
@@ -141,7 +142,7 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `pandocPath` | `pandoc` | Full path or name on PATH. |
-| `defaultOutputDir` | `Exports/Books` | Vault-relative. |
+| `defaultOutputDir` | (empty — required) | Absolute filesystem path. Supports `~`. Plugin refuses to export until set. |
 | `defaultPdfEngine` | `typst` | typst / weasyprint / xelatex / tectonic / wkhtmltopdf |
 | `defaultLanguage` | `en` | Used when book note doesn't set one. |
 | `defaultAuthors` | `[]` | Author names used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |

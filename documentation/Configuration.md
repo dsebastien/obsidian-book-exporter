@@ -7,7 +7,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 | Setting | Type | Default | Notes |
 |---------|------|---------|-------|
 | `pandocPath` | string | `pandoc` | Required. Full path or PATH name. |
-| `defaultOutputDir` | string | `Exports/Books` | Vault-relative. |
+| `defaultOutputDir` | string | (empty — required) | Absolute filesystem path. `~` is expanded. Plugin refuses to export until set. |
 | `defaultPdfEngine` | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf` |
 | `defaultLanguage` | string | `en` | BCP-47 |
 | `defaultAuthors` | list | `[]` | Used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |
@@ -23,7 +23,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 
 ```yaml
 book_export:
-  output_dir: "60 Archives/Books/Exports"
+  output_dir: "~/Books/The Context Layer"
   pdf_engine: typst
   toc_depth: 2
   include_toc: true
