@@ -10,6 +10,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 | `defaultOutputDir` | string | `Exports/Books` | Vault-relative. |
 | `defaultPdfEngine` | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf` |
 | `defaultLanguage` | string | `en` | BCP-47 |
+| `defaultAuthors` | list | `[]` | Used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |
 | `sectionsToSkip` | list | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining. Replaces — does not extend — when overridden per book. |
 | `includeTocByDefault` | boolean | true | |
 | `tocDepthDefault` | integer | 2 | |

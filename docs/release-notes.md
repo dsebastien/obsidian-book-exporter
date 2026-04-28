@@ -13,5 +13,6 @@ This page summarises user-visible changes. The full commit history lives in [`CH
 - Any Markdown note can be used as a book manifest — no specific tag is required.
 - **Manifest contract is heading-driven.** `# H1` is the title; `## H2` … `###### H6` are sections at that level; bullets with wikilinks contribute notes (in order) to the current section. No reserved heading names — the structure is yours.
 - **Sections to skip** (default: `Related`, `References`, `Title Options`, `Target Audience`) — applied to both the manifest body before parsing (so authoring scaffolding stays in the manifest but never reaches the export) and to each linked note when inlining (so housekeeping headings stay out of the published book). One unified setting, configurable globally and per book.
+- **Default author(s)** plugin setting — fills in when a manifest doesn't define `authors:` in its frontmatter, before falling back to `Anonymous`.
 - EPUB and PDF supported. **Typst** is the recommended (and default) PDF engine.
 - MOBI export removed. Modern Kindles + KDP accept EPUB; the cost of bundling Calibre wasn't worth it.

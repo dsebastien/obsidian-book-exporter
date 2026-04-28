@@ -101,6 +101,23 @@ export class BookExporterSettingTab extends PluginSettingTab {
                     })
                 })
             )
+
+        new Setting(containerEl)
+            .setName('Default author(s)')
+            .setDesc(
+                'Comma-separated list. Used when the manifest doesn\'t define `authors:` in its frontmatter. Leave empty to fall back to "Anonymous".'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('Sébastien Dubois')
+                    .setValue(this.plugin.settings.defaultAuthors.join(', '))
+                    .onChange(async (value) => {
+                        const authors = parseList(value)
+                        await this.plugin.updateSettings((draft) => {
+                            draft.defaultAuthors = authors
+                        })
+                    })
+            )
     }
 
     private renderProcessing(containerEl: HTMLElement): void {

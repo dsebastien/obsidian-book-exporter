@@ -62,7 +62,7 @@ book_export:
 | Field | Required | Notes |
 |-------|----------|-------|
 | `title` | recommended | Falls back to the body H1, then the manifest's basename (`(Book)` suffix stripped). |
-| `authors` | recommended | String or list. Falls back to `Anonymous`. |
+| `authors` | recommended | String or list. Falls back to the plugin's **Default author(s)** setting, then to `Anonymous`. |
 | `language` | optional | BCP-47 (`en`, `fr`). Default `en`. |
 | `publisher` | optional | |
 | `date_published` | optional | |

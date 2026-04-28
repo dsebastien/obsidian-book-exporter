@@ -135,7 +135,8 @@ export class BookParser {
             fmTitle ??
             bodyTitle?.replace(/\s*\(Book\)\s*$/i, '').trim() ??
             file.basename.replace(/\s*\(Book\)\s*$/i, '').trim()
-        const authors = asStringList(fm['authors'])
+        const fmAuthors = asStringList(fm['authors'])
+        const authors = fmAuthors.length > 0 ? fmAuthors : this.settings.defaultAuthors
         const language = asString(fm['language']) ?? this.settings.defaultLanguage
 
         const isbn = asString(fm['isbn'])

@@ -144,6 +144,7 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 | `defaultOutputDir` | `Exports/Books` | Vault-relative. |
 | `defaultPdfEngine` | `typst` | typst / weasyprint / xelatex / tectonic / wkhtmltopdf |
 | `defaultLanguage` | `en` | Used when book note doesn't set one. |
+| `defaultAuthors` | `[]` | Author names used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |
 | `sectionsToSkip` | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining. |
 | `includeTocByDefault` | `true` | |
 | `tocDepthDefault` | `2` | |

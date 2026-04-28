@@ -7,6 +7,12 @@ export interface PluginSettings {
     defaultOutputDir: string
     defaultPdfEngine: PdfEngine
     defaultLanguage: string
+    /**
+     * Author names used when the manifest doesn't define `authors` in its
+     * frontmatter. Empty list ⇒ falls back to "Anonymous" (warning, not
+     * error).
+     */
+    defaultAuthors: string[]
 
     /**
      * Heading names (case-insensitive) to skip — applied both to the manifest
@@ -36,6 +42,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultOutputDir: 'Exports/Books',
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
+    defaultAuthors: [],
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     includeTocByDefault: true,
     tocDepthDefault: 2,

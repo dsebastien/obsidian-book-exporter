@@ -3,7 +3,7 @@
 ## Entities
 
 - **BookManifest (manifest note)** — any Markdown note whose frontmatter holds book metadata and whose body uses headings + bulleted wikilinks to declare the book's structure. No tag, folder, or naming convention is required.
-- **BookMetadata** — title, authors, language, optional ISBN/publisher/cover/description/etc. Title resolution: frontmatter `title` → body `# H1` (with trailing ` (Book)` stripped) → manifest basename (with trailing ` (Book)` stripped).
+- **BookMetadata** — title, authors, language, optional ISBN/publisher/cover/description/etc. Title resolution: frontmatter `title` → body `# H1` (with trailing ` (Book)` stripped) → manifest basename (with trailing ` (Book)` stripped). Authors resolution: frontmatter `authors:` → plugin `defaultAuthors` setting → `["Anonymous"]`.
 - **BookExportOverrides** — per-book overrides (`output_dir`, `pdf_engine`, `toc_depth`, `include_toc`, `page_break_per_chapter`, `formats`, `pandoc_extra_args`, `sections_to_skip`).
 - **NoteReference** — one wikilink resolved against the vault: `filePath` (vault-relative path of the target note) and `displayTitle` (alias if any, otherwise the target's basename).
 - **BookSection** — one heading-driven node of the structure tree: `level` (2..6), `title`, ordered list of `notes` (`NoteReference[]`), and `children` (`BookSection[]`).
