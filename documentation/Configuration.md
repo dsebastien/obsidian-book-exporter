@@ -10,7 +10,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 | `defaultOutputDir` | string | `Exports/Books` | Vault-relative. |
 | `defaultPdfEngine` | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf` |
 | `defaultLanguage` | string | `en` | BCP-47 |
-| `sectionsToSkip` | list | `[Related, References]` | Heading names (case-insensitive) stripped from each linked note before inlining. Replaces — does not extend — when overridden per book. |
+| `sectionsToSkip` | list | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining. Replaces — does not extend — when overridden per book. |
 | `includeTocByDefault` | boolean | true | |
 | `tocDepthDefault` | integer | 2 | |
 | `pageBreakPerChapterDefault` | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |

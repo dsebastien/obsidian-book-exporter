@@ -109,12 +109,12 @@ export class BookExporterSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Sections to skip')
             .setDesc(
-                'Comma-separated list of heading names (case-insensitive) to strip from each linked note before inlining. Default: Related, References.'
+                'Comma-separated list of heading names (case-insensitive) to skip. Applied to the manifest before parsing (drops authoring scaffolding like "Title Options", "Target Audience") and to each linked note when inlining (drops housekeeping sections like "Related", "References").'
             )
             .addTextArea((t) => {
-                t.inputEl.rows = 2
+                t.inputEl.rows = 3
                 t.inputEl.cols = 40
-                t.setPlaceholder('Related, References')
+                t.setPlaceholder('Related, References, Title Options, Target Audience')
                     .setValue(this.plugin.settings.sectionsToSkip.join(', '))
                     .onChange(async (value) => {
                         const list = parseList(value)

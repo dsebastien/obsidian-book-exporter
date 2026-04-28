@@ -7,13 +7,16 @@ The plugin is a thin orchestration layer over **Pandoc**. Obsidian provides note
 │ Active manifest    │  Markdown w/ frontmatter + heading tree + bulleted wikilinks
 └────────┬───────────┘
          │ (BookParser)
+         │   - strips frontmatter
+         │   - drops sectionsToSkip from the body (authoring scaffolding)
+         │   - walks the heading tree, collects bulleted wikilinks per section
          ▼
 ┌────────────────────┐
 │ ParsedBook         │  metadata + sections: BookSection[]  (recursive heading tree)
 └────────┬───────────┘
          │ (ManuscriptCompiler)
          │   - walks the tree, emits each section at its level
-         │   - inlines linked notes (strip frontmatter, drop skipped sections,
+         │   - inlines linked notes (strip frontmatter, drop sectionsToSkip,
          │     drop first H1, demote remaining headings, rewrite Obsidian syntax)
          │   - copies referenced images into _resources/
          │   - inserts page breaks before top-level sections (optional)

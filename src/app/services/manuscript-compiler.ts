@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import type { BookSection, NoteReference, ParsedBook } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
-import { stripFrontmatter } from './book-parser'
+import { stripFrontmatter, stripSkippedSections } from '../../utils/markdown'
 
 export interface CompiledManuscript {
     /** Absolute path of the combined `.md` file. */
@@ -129,52 +129,6 @@ function lowestSectionLevel(sections: BookSection[]): number | null {
         if (lowest === null || section.level < lowest) lowest = section.level
     }
     return lowest
-}
-
-/**
- * Walks `body` line-by-line. When a heading whose text matches an entry in
- * `skip` (case-insensitive) is encountered, the heading and every line that
- * follows are dropped until a heading at the same-or-higher level appears.
- * Code fences are preserved.
- */
-export function stripSkippedSections(body: string, skip: string[]): string {
-    if (skip.length === 0) return body
-    const skipSet = new Set(skip.map((s) => s.trim().toLowerCase()))
-    const lines = body.split(/\r?\n/)
-    const out: string[] = []
-    let inFence = false
-    let skipLevel: number | null = null
-
-    for (const line of lines) {
-        if (FENCE_RE.test(line)) {
-            inFence = !inFence
-            if (skipLevel === null) out.push(line)
-            continue
-        }
-        if (inFence) {
-            if (skipLevel === null) out.push(line)
-            continue
-        }
-
-        const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
-        if (heading !== null) {
-            const level = heading[1]!.length
-            const text = heading[2]!.trim().toLowerCase()
-            if (skipLevel !== null && level <= skipLevel) {
-                skipLevel = null
-            }
-            if (skipLevel === null) {
-                if (skipSet.has(text)) {
-                    skipLevel = level
-                    continue
-                }
-                out.push(line)
-            }
-            continue
-        }
-        if (skipLevel === null) out.push(line)
-    }
-    return out.join('\n')
 }
 
 function dropFirstH1(content: string): string {

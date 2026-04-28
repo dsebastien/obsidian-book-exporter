@@ -12,6 +12,6 @@ This page summarises user-visible changes. The full commit history lives in [`CH
 - Initial scaffold. Manuscript compilation pipeline, Pandoc runner, validator, settings tab, six commands.
 - Any Markdown note can be used as a book manifest — no specific tag is required.
 - **Manifest contract is heading-driven.** `# H1` is the title; `## H2` … `###### H6` are sections at that level; bullets with wikilinks contribute notes (in order) to the current section. No reserved heading names — the structure is yours.
-- **Sections to skip** (default: `Related`, `References`) are stripped from each linked note before inlining, so housekeeping headings stay out of the published book. Configurable globally and per book.
+- **Sections to skip** (default: `Related`, `References`, `Title Options`, `Target Audience`) — applied to both the manifest body before parsing (so authoring scaffolding stays in the manifest but never reaches the export) and to each linked note when inlining (so housekeeping headings stay out of the published book). One unified setting, configurable globally and per book.
 - EPUB and PDF supported. **Typst** is the recommended (and default) PDF engine.
 - MOBI export removed. Modern Kindles + KDP accept EPUB; the cost of bundling Calibre wasn't worth it.

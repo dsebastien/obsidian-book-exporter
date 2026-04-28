@@ -41,8 +41,11 @@ export interface BookExportOverrides {
     /** Extra raw arguments forwarded to pandoc verbatim. */
     pandocExtraArgs?: string[]
     /**
-     * Heading names (case-insensitive) to skip in linked notes when inlining
-     * them. Overrides the plugin-level default.
+     * Heading names (case-insensitive) to skip — applied both to the manifest
+     * body before parsing (so authoring scaffolding like `Title Options`,
+     * `Target Audience`, `Related`, ... stays in the manifest but never
+     * reaches the export) and to each linked note when it is inlined.
+     * Overrides the plugin-level default.
      */
     sectionsToSkip?: string[]
 }

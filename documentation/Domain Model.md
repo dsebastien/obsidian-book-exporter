@@ -46,10 +46,15 @@ Rules:
 
 ## Inlining contract
 
+The same `sectionsToSkip` list (default: `Related`, `References`, `Title Options`, `Target Audience`) runs at two points:
+
+- **At parse time, on the manifest body.** Any matching top-level heading and its body are removed before the heading tree is built. This lets you keep authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) inside the manifest without it leaking into the export.
+- **At compile time, on each linked note.** Same logic, applied per inlined note so housekeeping sections like `## Related` and `## References` from atomic notes stay out of the book.
+
 When a `NoteReference` is inlined into the manuscript:
 
 1. The note's frontmatter is stripped.
-2. Configured "sections to skip" (default: `Related`, `References`) are dropped — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
+2. Configured "sections to skip" are dropped — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
 3. The note's first `# H1` is dropped (the manifest's section title is authoritative).
 4. Remaining headings are demoted to fit beneath the parent section. Offset = `parentLevel - 1`, capped at H6.
 5. Obsidian-only syntax is rewritten: callouts → fenced divs, image embeds (`![[image.png]]`) → standard images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped.

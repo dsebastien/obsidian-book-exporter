@@ -9,9 +9,11 @@ export interface PluginSettings {
     defaultLanguage: string
 
     /**
-     * Heading names (case-insensitive) to strip from linked notes when
-     * inlining them — typically housekeeping sections like "Related" or
-     * "References" that don't belong in a book. Per-book `sectionsToSkip`
+     * Heading names (case-insensitive) to skip — applied both to the manifest
+     * body before parsing (so authoring scaffolding like "Title Options" or
+     * "Target Audience" never reaches the export) and to each linked note
+     * when it is inlined (so housekeeping sections like "Related" or
+     * "References" stay out of the book). Per-book `sections_to_skip`
      * overrides this value.
      */
     sectionsToSkip: string[]
@@ -34,7 +36,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultOutputDir: 'Exports/Books',
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
-    sectionsToSkip: ['Related', 'References'],
+    sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     includeTocByDefault: true,
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,

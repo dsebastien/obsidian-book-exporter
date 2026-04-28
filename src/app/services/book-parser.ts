@@ -9,6 +9,7 @@ import type {
     PdfEngine
 } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
+import { stripFrontmatter, stripSkippedSections } from '../../utils/markdown'
 
 /**
  * Parses a manifest note into a {@link ParsedBook}.
@@ -43,8 +44,10 @@ export class BookParser {
         const body = stripFrontmatter(raw)
 
         const overrides = extractOverrides(fm)
+        const skip = overrides.sectionsToSkip ?? this.settings.sectionsToSkip
+        const cleanBody = stripSkippedSections(body, skip)
 
-        const { sections, bodyTitle } = this.parseBody(body, file)
+        const { sections, bodyTitle } = this.parseBody(cleanBody, file)
         const metadata = this.extractMetadata(fm, file, bodyTitle)
 
         return {
@@ -312,17 +315,4 @@ function isPdfEngine(v: string): v is PdfEngine {
 
 function isExportFormat(v: string): v is ExportFormat {
     return v === 'epub' || v === 'pdf'
-}
-
-/**
- * Strips a leading YAML frontmatter block (between `---` lines) from a raw
- * note string. Returns the body unchanged when there is no frontmatter.
- */
-export function stripFrontmatter(raw: string): string {
-    if (!raw.startsWith('---')) return raw
-    const rest = raw.slice(3)
-    const end = rest.search(/\n---\s*(\r?\n|$)/)
-    if (end === -1) return raw
-    const after = rest.slice(end).replace(/^\n---\s*(\r?\n|$)/, '')
-    return after
 }

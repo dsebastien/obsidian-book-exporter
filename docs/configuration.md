@@ -16,7 +16,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Default formats | comma list | `epub,pdf` | Used by **Export to all formats** when the manifest doesn't specify any. |
 | PDF engine | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf`. |
 | Default language | BCP-47 | `en` | Used when the manifest doesn't set `language`. |
-| Sections to skip | comma list | `Related, References` | Heading names (case-insensitive) stripped from each linked note before inlining. |
+| Sections to skip | comma list | `Related, References, Title Options, Target Audience` | Heading names (case-insensitive). Applied to the manifest body before parsing (drops authoring scaffolding) AND to each linked note when inlining (drops housekeeping sections). |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | TOC depth | integer | 2 | `--toc-depth=N`. |
 | Page break per chapter | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |
@@ -49,7 +49,7 @@ book_export:
 | `include_toc` | boolean | Whether to include a TOC for this book. |
 | `page_break_per_chapter` | boolean | Page-break behaviour for this book. |
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
-| `sections_to_skip` | list | Heading names stripped from linked notes before inlining (case-insensitive). Replaces — does not extend — the global setting. |
+| `sections_to_skip` | list | Heading names (case-insensitive). Applied to both the manifest body and linked notes. Replaces — does not extend — the global setting. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
 
 ## External tools

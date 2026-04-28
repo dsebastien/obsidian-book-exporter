@@ -31,7 +31,7 @@ book_export:
   formats: [epub, pdf]
   pdf_engine: typst
   page_break_per_chapter: true
-  sections_to_skip: [Related, References]
+  sections_to_skip: [Related, References, Title Options, Target Audience]
 ---
 
 # The Context Layer
@@ -63,7 +63,7 @@ book_export:
 When a linked note is inlined, the plugin:
 
 - Strips its frontmatter.
-- Removes configurable sections (default: `Related`, `References`) — case-insensitive heading match, fence-aware.
+- Removes configurable sections (default: `Related`, `References`, `Title Options`, `Target Audience`) — case-insensitive heading match, fence-aware. The same list is applied to the manifest body before parsing, so authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) stays in the manifest but never reaches the export.
 - Drops the note's first `# H1` (the section title in the manifest is authoritative).
 - Demotes remaining headings so they nest under the manifest section (offset = `parentLevel - 1`, capped at H6).
 - Rewrites Obsidian-only syntax: callouts → fenced divs, `![[image]]` → standard Markdown images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped.

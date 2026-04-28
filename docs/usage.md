@@ -21,7 +21,7 @@ book_export:
   formats: [epub, pdf]
   pdf_engine: typst
   page_break_per_chapter: true
-  sections_to_skip: [Related, References]
+  sections_to_skip: [Related, References, Title Options, Target Audience]
 ---
 
 # The Context Layer
@@ -87,12 +87,13 @@ book_export:
 ## What the compiler does
 
 1. Walks the heading tree from the manifest. Each section is rendered at its level; its linked notes are inlined in source order.
-2. For each linked note:
+2. **First** the manifest body itself is filtered: any top-level section whose heading matches an entry in **sections to skip** (case-insensitive) is dropped before parsing. This lets you keep authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) inside the manifest without polluting the export.
+3. For each linked note:
    - Strips frontmatter.
-   - Removes configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware.
+   - Removes the same configured **sections to skip** (default: `Related`, `References`, `Title Options`, `Target Audience`) — case-insensitive heading match, fence-aware.
    - Drops the first `# H1` (the section title from the manifest is authoritative).
    - Demotes remaining headings to fit beneath the current manifest section (offset = `parentLevel - 1`, capped at H6).
    - Rewrites Obsidian-only syntax: callouts → fenced divs, image embeds (`![[…]]`) → standard Markdown images, note references (`[[Note]]`) → display text, `%% comments %%` stripped.
-3. Copies referenced images into a `_resources/` folder next to the manuscript.
-4. Inserts a hard page break before each top-level section if **page break per chapter** is enabled. "Top-level" = the lowest-numbered heading level used in the manifest (so it works whether you start at H2 or use H2 for parts and H3 for chapters).
-5. Hands the result to Pandoc with a generated YAML metadata file (avoids escaping issues with non-ASCII titles).
+4. Copies referenced images into a `_resources/` folder next to the manuscript.
+5. Inserts a hard page break before each top-level section if **page break per chapter** is enabled. "Top-level" = the lowest-numbered heading level used in the manifest (so it works whether you start at H2 or use H2 for parts and H3 for chapters).
+6. Hands the result to Pandoc with a generated YAML metadata file (avoids escaping issues with non-ASCII titles).
