@@ -19,7 +19,7 @@ description: A book about turning notes into knowledge.
 cover: covers/the-context-layer.jpg
 book_export:
   formats: [epub, pdf]
-  pdf_engine: xelatex
+  pdf_engine: typst
   page_break_per_chapter: true
 ---
 
@@ -71,7 +71,6 @@ book_export:
 |---------|--------------|
 | Export current book to EPUB | Compiles the manuscript and runs Pandoc → EPUB. |
 | Export current book to PDF | Compiles the manuscript and runs Pandoc with the configured PDF engine. |
-| Export current book to MOBI | Builds the EPUB intermediate, then runs Calibre's `ebook-convert`. |
 | Export current book to all formats | Runs every format listed in `book_export.formats`, falling back to the plugin default. |
 | Preview compiled manuscript (.md) | Writes the merged Markdown to the temp directory and opens it. Useful when an export fails — you see exactly what Pandoc was given. |
 | Validate current book | Parses the manifest, runs the validator, and shows a report (missing chapters, broken wikilinks, etc.). No export. |

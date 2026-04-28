@@ -6,10 +6,9 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 
 | Setting | Type | Default | Notes |
 |---------|------|---------|-------|
-| `pandocPath` | string | `pandoc` | Full path or PATH name. |
-| `ebookConvertPath` | string | `ebook-convert` | Required for MOBI. |
+| `pandocPath` | string | `pandoc` | Required. Full path or PATH name. |
 | `defaultOutputDir` | string | `Exports/Books` | Vault-relative. |
-| `defaultPdfEngine` | enum | `xelatex` | xelatex / weasyprint / wkhtmltopdf / tectonic / typst |
+| `defaultPdfEngine` | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf` |
 | `defaultLanguage` | string | `en` | BCP-47 |
 | `frontMatterHeading` | string | `Front Matter` | |
 | `chaptersHeading` | string | `Chapters` | |
@@ -17,7 +16,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 | `includeTocByDefault` | boolean | true | |
 | `tocDepthDefault` | integer | 2 | |
 | `pageBreakPerChapterDefault` | boolean | true | |
-| `defaultFormats` | list | `[epub, pdf, mobi]` | Used by the "all formats" command. |
+| `defaultFormats` | list | `[epub, pdf]` | Used by the "all formats" command. |
 | `keepTempFiles` | boolean | false | Debug. |
 | `debug` | boolean | false | Verbose console logging. |
 
@@ -26,7 +25,7 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 ```yaml
 book_export:
   output_dir: "60 Archives/Books/Exports"
-  pdf_engine: xelatex
+  pdf_engine: typst
   toc_depth: 2
   include_toc: true
   page_break_per_chapter: true

@@ -38,5 +38,4 @@ Rules:
 ## Outputs
 
 - `epub` — Pandoc with `--epub-cover-image` if a cover is present.
-- `pdf` — Pandoc with `--pdf-engine=<engine>`. Engine is configurable globally + per book.
-- `mobi` — Calibre's `ebook-convert` from the produced EPUB.
+- `pdf` — Pandoc with `--pdf-engine=<engine>`. Engine is configurable globally + per book; default is Typst.

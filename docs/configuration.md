@@ -5,17 +5,16 @@ nav_order: 3
 
 # Configuration
 
-The plugin has two layers of configuration: **plugin settings** (apply to every book) and **per-book overrides** (defined in the manifest's frontmatter, override the corresponding plugin setting).
+Two layers: **plugin settings** (apply to every book) and **per-book overrides** (defined in the manifest's frontmatter, override the matching plugin setting).
 
 ## Plugin settings
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| Pandoc path | string | `pandoc` | Full path or PATH name. |
-| Calibre `ebook-convert` path | string | `ebook-convert` | Required for MOBI. |
+| Pandoc path | string | `pandoc` | Required. Full path or PATH name. |
 | Default output folder | string | `Exports/Books` | Vault-relative folder for exports. Created if missing. |
-| Default formats | comma list | `epub,pdf,mobi` | Used by **Export to all formats** when the manifest doesn't specify any. |
-| PDF engine | enum | `xelatex` | `xelatex` / `weasyprint` / `wkhtmltopdf` / `tectonic` / `typst`. |
+| Default formats | comma list | `epub,pdf` | Used by **Export to all formats** when the manifest doesn't specify any. |
+| PDF engine | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf`. |
 | Default language | BCP-47 | `en` | Used when the manifest doesn't set `language`. |
 | Front-matter heading | string | `Front Matter` | Body heading for the front-matter list. |
 | Chapters heading | string | `Chapters` | Body heading for the chapters list. |
@@ -50,7 +49,7 @@ book_export:
 | `toc_depth` | integer | Overrides the global TOC depth. |
 | `include_toc` | boolean | Whether to include a TOC for this book. |
 | `page_break_per_chapter` | boolean | Page-break behaviour for this book. |
-| `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf, mobi]`. |
+| `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
 
 ## External tools
@@ -58,7 +57,12 @@ book_export:
 | Tool | Required for | Install |
 |------|--------------|---------|
 | Pandoc ≥ 3.x | EPUB, PDF | <https://pandoc.org/installing.html> |
-| A PDF engine | PDF | xelatex (TeX Live / MikTeX), [Tectonic](https://tectonic-typesetting.github.io), [Typst](https://typst.app), Weasyprint, wkhtmltopdf |
-| Calibre `ebook-convert` | MOBI | <https://calibre-ebook.com/download> |
+| Typst | PDF (recommended) | <https://typst.app> — single small binary, beautiful output, fast |
+| xelatex / tectonic | PDF (alternatives) | only if you already have a TeX setup |
+| Weasyprint / wkhtmltopdf | PDF (alternatives) | HTML/CSS-based; lower typographic quality than Typst or LaTeX |
 
 If a binary is not on `$PATH`, set its full path in **Settings → Book Exporter**.
+
+## PDF quality notes
+
+The default engine is **Typst** for one reason: it gives professional book typography (proper page breaks, no split images, hyphenation, widow/orphan control) without the install pain of LaTeX. xelatex / tectonic produce comparable output if you already have them. Weasyprint and wkhtmltopdf are HTML-rendering engines — fine for short documents, weaker for books, kept for completeness.

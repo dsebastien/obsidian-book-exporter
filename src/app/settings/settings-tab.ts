@@ -2,8 +2,8 @@ import { App, PluginSettingTab, Setting } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, PdfEngine } from '../domain/book-manifest.intf'
 
-const PDF_ENGINES: PdfEngine[] = ['xelatex', 'weasyprint', 'wkhtmltopdf', 'tectonic', 'typst']
-const FORMATS: ExportFormat[] = ['epub', 'pdf', 'mobi']
+const PDF_ENGINES: PdfEngine[] = ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf']
+const FORMATS: ExportFormat[] = ['epub', 'pdf']
 
 export class BookExporterSettingTab extends PluginSettingTab {
     plugin: BookExporterPlugin
@@ -30,7 +30,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Pandoc path')
-            .setDesc('Full path to the pandoc binary, or just `pandoc` to rely on $PATH.')
+            .setDesc('Required. Full path to the pandoc binary, or just `pandoc` to rely on $PATH.')
             .addText((t) =>
                 t
                     .setPlaceholder('pandoc')
@@ -38,20 +38,6 @@ export class BookExporterSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         await this.plugin.updateSettings((draft) => {
                             draft.pandocPath = value.trim() || 'pandoc'
-                        })
-                    })
-            )
-
-        new Setting(containerEl)
-            .setName('Calibre `ebook-convert` path')
-            .setDesc('Required for MOBI export. Defaults to `ebook-convert` on $PATH.')
-            .addText((t) =>
-                t
-                    .setPlaceholder('ebook-convert')
-                    .setValue(this.plugin.settings.ebookConvertPath)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSettings((draft) => {
-                            draft.ebookConvertPath = value.trim() || 'ebook-convert'
                         })
                     })
             )
@@ -81,7 +67,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
             )
             .addText((t) =>
                 t
-                    .setPlaceholder('epub,pdf,mobi')
+                    .setPlaceholder('epub,pdf')
                     .setValue(this.plugin.settings.defaultFormats.join(','))
                     .onChange(async (value) => {
                         const formats = parseFormats(value)
@@ -93,7 +79,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('PDF engine')
-            .setDesc('Pandoc PDF engine used unless the book overrides it.')
+            .setDesc('Pandoc PDF engine used unless the book overrides it. Typst is recommended — single small binary, no LaTeX install needed.')
             .addDropdown((d) => {
                 for (const engine of PDF_ENGINES) d.addOption(engine, engine)
                 d.setValue(this.plugin.settings.defaultPdfEngine).onChange(async (value) => {

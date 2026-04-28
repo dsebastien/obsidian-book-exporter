@@ -19,7 +19,7 @@ export class PandocRunner {
     constructor(private readonly settings: PluginSettings) {}
 
     async run(
-        format: 'epub' | 'pdf',
+        format: ExportFormat,
         book: ParsedBook,
         compiled: CompiledManuscript,
         outputPath: string
@@ -33,7 +33,7 @@ export class PandocRunner {
     }
 
     private buildArgs(
-        format: 'epub' | 'pdf',
+        format: ExportFormat,
         book: ParsedBook,
         compiled: CompiledManuscript,
         outputPath: string

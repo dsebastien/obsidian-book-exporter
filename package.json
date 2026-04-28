@@ -1,7 +1,7 @@
 {
     "name": "obsidian-book-exporter",
     "version": "0.0.0",
-    "description": "Export books written in Obsidian (one book note + linked chapters/sections) to EPUB, PDF, and MOBI via Pandoc and Calibre.",
+    "description": "Export books written in Obsidian (one manifest note + linked chapter notes) to EPUB and PDF via Pandoc.",
     "author": {
         "name": "Sébastien Dubois",
         "email": "developassion.sprl@gmail.com",
@@ -13,8 +13,8 @@
         "book",
         "epub",
         "pdf",
-        "mobi",
         "pandoc",
+        "typst",
         "publishing"
     ],
     "license": "MIT",

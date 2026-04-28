@@ -9,5 +9,7 @@ This page summarises user-visible changes. The full commit history lives in [`CH
 
 ## Unreleased
 
-- Initial scaffold. Manuscript compilation pipeline, Pandoc + Calibre runners, validator, settings tab, seven commands.
+- Initial scaffold. Manuscript compilation pipeline, Pandoc runner, validator, settings tab, six commands.
 - Any Markdown note can be used as a book manifest — no specific tag is required.
+- EPUB and PDF supported. **Typst** is the recommended (and default) PDF engine.
+- MOBI export removed. Modern Kindles + KDP accept EPUB; the cost of bundling Calibre wasn't worth it.

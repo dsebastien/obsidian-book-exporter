@@ -1,16 +1,15 @@
 # Obsidian Book Exporter
 
-Write a book inside an Obsidian vault — one **book note** acts as the manifest (table of contents), each chapter / section is its own note. The plugin compiles the structure into a single manuscript and exports to **EPUB**, **PDF**, and **MOBI** via [Pandoc](https://pandoc.org) and [Calibre](https://calibre-ebook.com).
+Write a book inside an Obsidian vault — one **manifest note** acts as the table of contents, each chapter / section is its own note. The plugin compiles the structure into a single manuscript and exports to **EPUB** and **PDF** via [Pandoc](https://pandoc.org).
 
-> Desktop only. Requires `pandoc` (and `ebook-convert` for MOBI) on `$PATH` — or configure the binary paths in settings.
+> Desktop only. Requires `pandoc` on `$PATH` (or configure the path in settings). For PDF, [Typst](https://typst.app) is the recommended engine — single small binary, no LaTeX install needed. LaTeX engines (xelatex, tectonic) are still supported if you prefer.
 
 ## How it works
 
-1. Create a book note tagged `type/creation/book`. Put book metadata in the frontmatter.
-2. List the chapters / sections in the body, under headings the plugin recognizes.
-3. Run **Export current book to EPUB / PDF / MOBI** from the command palette.
+1. Open any Markdown note that you want to use as the book manifest. Put book metadata in the frontmatter, list chapters in the body — no specific tag, folder, or filename required.
+2. Run **Export current book to EPUB / PDF / all formats** from the command palette.
 
-### Example book note
+### Example manifest
 
 ```markdown
 ---
@@ -20,14 +19,13 @@ language: en
 publisher: DeveloPassion
 description: A book about turning notes into knowledge.
 cover: covers/the-context-layer.jpg
-tags: [type/creation/book]
 book_export:
   formats: [epub, pdf]
-  pdf_engine: xelatex
+  pdf_engine: typst
   page_break_per_chapter: true
 ---
 
-# The Context Layer (Book)
+# The Context Layer
 
 ## Front Matter
 - [[Foreword]]
@@ -48,7 +46,6 @@ book_export:
 
 - `Book Exporter: Export current book to EPUB`
 - `Book Exporter: Export current book to PDF`
-- `Book Exporter: Export current book to MOBI`
 - `Book Exporter: Export current book to all formats`
 - `Book Exporter: Preview compiled manuscript (.md)`
 - `Book Exporter: Validate current book`
@@ -72,9 +69,9 @@ The dev build copies the plugin into `<vault>/.obsidian/plugins/obsidian-book-ex
 
 | Tool | Required for | Install |
 |------|--------------|---------|
-| pandoc ≥ 3.x | EPUB, PDF | https://pandoc.org/installing.html |
-| A LaTeX engine (xelatex / tectonic / typst) | PDF | distro package or [TeX Live](https://www.tug.org/texlive/) / [Tectonic](https://tectonic-typesetting.github.io) |
-| Calibre `ebook-convert` | MOBI | https://calibre-ebook.com/download |
+| Pandoc ≥ 3.x | EPUB, PDF | <https://pandoc.org/installing.html> |
+| Typst (recommended PDF engine) | PDF | <https://typst.app> — single binary |
+| xelatex / tectonic (alternative PDF engines) | PDF | only if you prefer LaTeX |
 
 ## Status
 

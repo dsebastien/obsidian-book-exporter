@@ -27,11 +27,6 @@ export function registerCommands(plugin: BookExporterPlugin): void {
         callback: () => void runExport(ctx, ['pdf'])
     })
     plugin.addCommand({
-        id: 'export-mobi',
-        name: 'Export current book to MOBI',
-        callback: () => void runExport(ctx, ['mobi'])
-    })
-    plugin.addCommand({
         id: 'export-all',
         name: 'Export current book to all formats',
         callback: () => void runExport(ctx, null)

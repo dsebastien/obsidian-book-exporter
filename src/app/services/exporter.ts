@@ -5,17 +5,15 @@ import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
 import type { ExportResult } from '../domain/export-options.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import { ManuscriptCompiler, type CompiledManuscript } from './manuscript-compiler'
-import { CalibreRunner } from './calibre-runner'
 import { PandocRunner, buildOutputFilename } from './pandoc-runner'
 
 /**
  * Orchestrates the full export pipeline: compile manuscript → run pandoc per
- * format → run calibre when MOBI is requested → clean up the temp directory.
+ * format → clean up the temp directory.
  */
 export class BookExporter {
     private readonly compiler: ManuscriptCompiler
     private readonly pandoc: PandocRunner
-    private readonly calibre: CalibreRunner
 
     constructor(
         private readonly app: App,
@@ -24,7 +22,6 @@ export class BookExporter {
     ) {
         this.compiler = new ManuscriptCompiler(app, settings)
         this.pandoc = new PandocRunner(settings)
-        this.calibre = new CalibreRunner(settings)
     }
 
     /**
@@ -45,30 +42,10 @@ export class BookExporter {
         const results: ExportResult[] = []
 
         try {
-            const requested = new Set(formats)
-            const needsEpubFirst = requested.has('mobi') && !requested.has('epub')
-            const epubPath = path.join(outputDir, buildOutputFilename(book, 'epub'))
-
-            if (requested.has('epub') || needsEpubFirst) {
-                const r = await this.pandoc.run('epub', book, compiled, epubPath)
-                if (requested.has('epub')) {
-                    results.push({ format: 'epub', outputPath: r.outputPath, durationMs: r.durationMs })
-                }
-            }
-
-            if (requested.has('pdf')) {
-                const pdfPath = path.join(outputDir, buildOutputFilename(book, 'pdf'))
-                const r = await this.pandoc.run('pdf', book, compiled, pdfPath)
-                results.push({ format: 'pdf', outputPath: r.outputPath, durationMs: r.durationMs })
-            }
-
-            if (requested.has('mobi')) {
-                const mobiPath = path.join(outputDir, buildOutputFilename(book, 'mobi'))
-                const r = await this.calibre.epubToMobi(epubPath, mobiPath)
-                results.push({ format: 'mobi', outputPath: r.outputPath, durationMs: r.durationMs })
-                if (needsEpubFirst) {
-                    await fs.rm(epubPath, { force: true })
-                }
+            for (const format of formats) {
+                const outputPath = path.join(outputDir, buildOutputFilename(book, format))
+                const r = await this.pandoc.run(format, book, compiled, outputPath)
+                results.push({ format, outputPath: r.outputPath, durationMs: r.durationMs })
             }
         } finally {
             if (!this.settings.keepTempFiles) {

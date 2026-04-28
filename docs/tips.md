@@ -27,13 +27,14 @@ Warnings (e.g. missing `authors`) don't block. Errors do.
 1. Toggle **Keep temporary files** on in settings.
 2. Run **Preview compiled manuscript (.md)**. Inspect the merged Markdown — that's exactly what Pandoc was given.
 3. If Pandoc itself failed, the Notice shows the last 20 lines of stderr. Common culprits:
-    - `xelatex not found` → install a TeX distribution or switch to Typst / Tectonic.
+    - `pandoc not found` → install Pandoc or set the binary path in settings.
+    - `typst not found` → install [Typst](https://typst.app), or switch the engine to one already on your system.
     - `Could not find image` → an `![[image.png]]` in a chapter doesn't resolve in the vault.
     - `unknown option` → check `pandoc_extra_args` in the manifest.
 
 ## Going further
 
-- **Per-book PDF engines.** Use `book_export.pdf_engine: typst` for one project and keep `xelatex` as the default. No need to flip global settings.
+- **Per-book PDF engines.** `book_export.pdf_engine: typst` for one project, `xelatex` for another. No need to flip global settings.
 - **Per-book output folders.** Keep finalised exports next to the project: `book_export.output_dir: "30 Areas/Books/My Book/Exports"`.
 - **Pandoc filters and templates.** Pass them through `book_export.pandoc_extra_args` (`--lua-filter=…`, `--template=…`). They run verbatim after the plugin's own arguments.
 
@@ -45,8 +46,8 @@ The active pane is not a Markdown file. Open the manifest note, focus its tab, t
 ### EPUB has no cover
 Set `cover` in the manifest frontmatter and make sure the path resolves inside the vault. Test with **Validate current book** — broken cover paths are reported.
 
-### MOBI export fails
-Verify Calibre is installed and `ebook-convert` is reachable. Run `ebook-convert --version` in a terminal; if that works, set the same path in **Settings → Calibre `ebook-convert` path**.
-
 ### TOC is too deep / too shallow
 Adjust `toc_depth` per book or globally. The default (`2`) shows chapters and immediate sections.
+
+### PDF has bad page breaks or split images
+Make sure you're using **Typst** or a LaTeX engine — not weasyprint / wkhtmltopdf. Browser-style HTML PDF engines have weaker page-break and figure-placement logic. Typst and LaTeX handle widows, orphans, and figure floats out of the box.

@@ -6,9 +6,9 @@
  * exporter. Kept free of any Obsidian API to make the parser unit-testable.
  */
 
-export type PdfEngine = 'xelatex' | 'weasyprint' | 'wkhtmltopdf' | 'tectonic' | 'typst'
+export type PdfEngine = 'typst' | 'weasyprint' | 'xelatex' | 'tectonic' | 'wkhtmltopdf'
 
-export type ExportFormat = 'epub' | 'pdf' | 'mobi'
+export type ExportFormat = 'epub' | 'pdf'
 
 export interface BookMetadata {
     title: string

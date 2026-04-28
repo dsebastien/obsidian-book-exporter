@@ -3,8 +3,6 @@ import type { ExportFormat, PdfEngine } from '../domain/book-manifest.intf'
 export interface PluginSettings {
     /** Path or PATH name of the pandoc binary. */
     pandocPath: string
-    /** Path or PATH name of Calibre's `ebook-convert` binary. */
-    ebookConvertPath: string
     /** Vault-relative default output folder for exports. */
     defaultOutputDir: string
     defaultPdfEngine: PdfEngine
@@ -32,9 +30,8 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     pandocPath: 'pandoc',
-    ebookConvertPath: 'ebook-convert',
     defaultOutputDir: 'Exports/Books',
-    defaultPdfEngine: 'xelatex',
+    defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
     frontMatterHeading: 'Front Matter',
     chaptersHeading: 'Chapters',
@@ -42,7 +39,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     includeTocByDefault: true,
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,
-    defaultFormats: ['epub', 'pdf', 'mobi'],
+    defaultFormats: ['epub', 'pdf'],
     keepTempFiles: false,
     debug: false
 }
