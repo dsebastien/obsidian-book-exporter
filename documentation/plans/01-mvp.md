@@ -103,6 +103,7 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
   - Drop configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
   - Drop the note's first `# H1` (the manifest section title is authoritative).
   - Demote remaining headings to fit underneath the parent section: offset = `parentLevel - 1`, capped at H6.
+- Convert standalone `---` thematic-break lines into `\newpage` raw blocks (fence-aware). Applied to both inlined-note bodies (after frontmatter strip) and manifest section prose. Lets the author force a page break manually wherever the automatic breaks are not enough.
 - Page breaks (when `page_break_per_chapter` is true):
   - **Chapter break** — `\newpage` before each chapter after the first.
   - **Part break** — format-conditional raw blocks (`pagebreak(to: "odd")` for Typst, `\cleardoublepage` for LaTeX, CSS `page-break-before: always` for EPUB) before each part after the first, forcing parts to start on a fresh recto page in print.

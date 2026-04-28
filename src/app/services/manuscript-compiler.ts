@@ -3,7 +3,11 @@ import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import type { BookSection, NoteReference, ParsedBook } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
-import { stripFrontmatter, stripSkippedSections } from '../../utils/markdown'
+import {
+    convertThematicBreaksToPageBreaks,
+    stripFrontmatter,
+    stripSkippedSections
+} from '../../utils/markdown'
 
 export interface CompiledManuscript {
     /** Absolute path of the combined `.md` file. */
@@ -91,7 +95,7 @@ export class ManuscriptCompiler {
         out.push('')
 
         if (section.prose.length > 0) {
-            out.push(section.prose)
+            out.push(convertThematicBreaksToPageBreaks(section.prose))
             out.push('')
         }
 
@@ -154,7 +158,8 @@ export class ManuscriptCompiler {
         const withoutSkipped = stripSkippedSections(body, sectionsToSkip)
         const headerless = dropFirstH1(withoutSkipped)
         const demoted = demoteHeadings(headerless, parentLevel)
-        return transformer.transform(demoted, file)
+        const pageBroken = convertThematicBreaksToPageBreaks(demoted)
+        return transformer.transform(pageBroken, file)
     }
 }
 

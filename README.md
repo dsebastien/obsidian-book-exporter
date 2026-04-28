@@ -19,6 +19,7 @@ Write a book inside an Obsidian vault — one **manifest note** acts as the tabl
 - Bullets without wikilinks are kept as part of the section's prose; text around a wikilink in a wikilink-bearing bullet is dropped (treated as author commentary).
 - **Anything else under a section (paragraphs, tables, blockquotes, code fences) is kept verbatim** between the heading and the inlined notes. Lets you write `## Acknowledgments` with just a paragraph and no links.
 - The structure is yours: parts → chapters → scenes, or chapters → sections, or just a flat list of chapters. The plugin doesn't care. When you mix two heading levels (parts + chapters), each new part starts on a fresh right-hand page in print, each new chapter on a new page.
+- A standalone `---` line in any note's body (or in the manifest's section prose) is converted to a hard page break. Use it to force a page break wherever the automatic chapter / part breaks aren't enough. (YAML frontmatter delimiters are stripped first; `---` inside a fenced code block is left alone.)
 
 ### Example manifest
 

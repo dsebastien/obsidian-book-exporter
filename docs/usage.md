@@ -55,6 +55,7 @@ book_export:
 - Every bullet under a section that contains one or more `[[wikilinks]]` adds those links — in source order — to the section's note list.
 - Bullets that contain no wikilinks are treated as prose. Text around a wikilink in a wikilink-bearing bullet is commentary and dropped.
 - **Other content under a section (paragraphs, plain bullets, tables, blockquotes, code fences) is kept verbatim** and emitted between the section heading and its inlined notes. Useful for sections that don't link out — `## Acknowledgments` followed by a thank-you paragraph just works.
+- **A standalone `---` line (a Markdown thematic break) becomes a page break** — both inside an inlined note and inside the manifest's section prose. This is the manual page-break primitive: drop a `---` wherever you want a forced page break, on top of the automatic chapter / part breaks. (YAML frontmatter delimiters are stripped before this rule fires, so the opening / closing `---` of a frontmatter block are unaffected. `---` inside a fenced code block is also left alone.)
 - Code fences are passed through unchanged.
 - The structure is yours. Parts/chapters, chapters/sections, just chapters — anything as long as the heading hierarchy is consistent.
 
@@ -94,6 +95,7 @@ book_export:
    - Removes the same configured **sections to skip** (default: `Related`, `References`, `Title Options`, `Target Audience`) — case-insensitive heading match, fence-aware.
    - Drops the first `# H1` (the section title from the manifest is authoritative).
    - Demotes remaining headings to fit beneath the current manifest section (offset = `parentLevel - 1`, capped at H6).
+   - Converts standalone `---` lines (thematic breaks) into hard page breaks (`\newpage`) — fence-aware. Frontmatter has already been stripped, so YAML delimiters never reach this step.
    - Rewrites Obsidian-only syntax: callouts → fenced divs, image embeds (`![[…]]`) → standard Markdown images, note references (`[[Note]]`) → display text, `%% comments %%` stripped.
 4. Copies referenced images into a `_resources/` folder next to the manuscript.
 5. Inserts page breaks when **page break per chapter** is enabled:

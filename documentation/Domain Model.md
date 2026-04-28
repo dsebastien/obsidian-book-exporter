@@ -79,6 +79,10 @@ The compiler decides which break to use based on the manifest's heading levels:
 - If `partLevel === chapterLevel`, every top-level section gets a chapter break — no part breaks. This handles flat manifests (`## Chapter 1`, `## Chapter 2`, …).
 - If `partLevel !== chapterLevel`, sibling parts get part breaks; the first chapter inside a part follows the part's heading without a break, and subsequent siblings inside the same part get chapter breaks.
 
+## Manual page breaks
+
+Inside any inlined note's body and inside any manifest section's prose, a standalone `---` line (3+ dashes, optional surrounding whitespace) is converted into a hard `\newpage` raw block. Frontmatter is stripped before this rule runs, so the YAML opening / closing `---` are unaffected. `---` inside fenced code blocks is also left alone. This gives the author a cheap, well-known primitive for forcing a page break wherever the automatic chapter / part breaks are not enough.
+
 ## Quote rendering
 
 The compiler injects a small Typst preamble (`#show quote.where(block: true): …`) at the top of the manuscript. It styles block quotes with a subtle left rule and italicized body, producing readable quotes in PDF output without requiring LaTeX or a custom Pandoc template. Pandoc is also called with `+smart` so straight quotes render as proper curly typographic quotes.
