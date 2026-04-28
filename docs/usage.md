@@ -69,7 +69,7 @@ book_export:
 | `date_published` | optional | |
 | `description` | optional | |
 | `isbn` | optional | Set as the EPUB identifier. |
-| `cover` | optional | Vault-relative or absolute image path. Used as the EPUB cover. |
+| `cover` | optional | Vault-relative or absolute image path, an `[[wikilink]]`, or an `http(s)` URL (downloaded automatically). Used as the EPUB cover. The frontmatter key name is configurable in **Settings → Note processing → Cover frontmatter property**. |
 | `subject` | optional | Single string or list. |
 | `rights` | optional | Copyright statement. |
 | `book_export` | optional | Per-book overrides — see [Configuration](configuration.md). |

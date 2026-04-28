@@ -29,7 +29,7 @@ The plugin reads these fields. Anything else is ignored.
 | `publisher` | optional | metadata | |
 | `date_published` | optional | metadata | |
 | `description` | optional | metadata | |
-| `cover` | optional | EPUB cover, PDF cover page | Path inside the vault (resolved via `MetadataCache`) or absolute path. |
+| `cover` | optional | EPUB cover, PDF cover page | Vault-relative path, `[[wikilink]]`, absolute filesystem path, or `http(s)` URL (downloaded to the temp folder before pandoc runs). The frontmatter key name is configurable via the plugin setting `coverProperty`. |
 | `book_export` | optional | export overrides | Object — see below. |
 
 `book_export` (per-book overrides — all optional):
@@ -152,6 +152,7 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 | `defaultPdfEngine` | `typst` | typst / weasyprint / xelatex / tectonic / wkhtmltopdf |
 | `defaultLanguage` | `en` | Used when book note doesn't set one. |
 | `defaultAuthors` | `[]` | Author names used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |
+| `coverProperty` | `cover` | Frontmatter key read for the book cover image. Configurable so manifests can use `cover`, `cover_image`, `cover_url`, etc. The value can be a vault-relative path, an `[[wikilink]]`, an absolute path, or an `http(s)` URL. |
 | `sectionsToSkip` | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining. |
 | `includeTocByDefault` | `true` | |
 | `tocDepthDefault` | `2` | |

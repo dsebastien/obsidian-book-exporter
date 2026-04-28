@@ -40,6 +40,7 @@ export class BookExporter {
 
         const outputDir = await this.resolveOutputDir(book)
         const tempDir = await this.makeTempDir(book)
+        await materializeRemoteCover(book, tempDir)
         const compiled = await this.compiler.compile(book, tempDir)
         const results: ExportResult[] = []
 
@@ -96,4 +97,36 @@ export function expandHome(p: string): string {
     if (p === '~') return os.homedir()
     if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2))
     return p
+}
+
+/**
+ * If the cover is an `http(s)` URL, downloads it into the temp dir and
+ * rewrites `book.metadata.coverPath` in place to the local path so the
+ * rest of the pipeline (pandoc, etc.) can treat covers uniformly. The
+ * extension is taken from the URL path; falls back to `.img` so pandoc
+ * can still load the bytes.
+ */
+async function materializeRemoteCover(book: ParsedBook, tempDir: string): Promise<void> {
+    const cover = book.metadata.coverPath
+    if (cover === undefined || !/^https?:\/\//i.test(cover)) return
+
+    let extension = '.img'
+    try {
+        const urlPath = new URL(cover).pathname
+        const ext = path.extname(urlPath)
+        if (ext.length > 0 && ext.length <= 6) extension = ext
+    } catch {
+        // ignore — keep the .img fallback
+    }
+
+    const response = await fetch(cover)
+    if (!response.ok) {
+        throw new Error(
+            `Failed to download cover from ${cover}: ${String(response.status)} ${response.statusText}`
+        )
+    }
+    const buffer = new Uint8Array(await response.arrayBuffer())
+    const dest = path.join(tempDir, `cover${extension}`)
+    await fs.writeFile(dest, buffer)
+    book.metadata.coverPath = dest
 }

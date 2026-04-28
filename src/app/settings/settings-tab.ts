@@ -126,6 +126,23 @@ export class BookExporterSettingTab extends PluginSettingTab {
         new Setting(containerEl).setName('Note processing').setHeading()
 
         new Setting(containerEl)
+            .setName('Cover frontmatter property')
+            .setDesc(
+                'Frontmatter key read for the book cover. Value can be a vault-relative path, an absolute path, an [[wikilink]], or an http(s) URL (downloaded to the temp folder before pandoc runs). Default: cover.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('cover')
+                    .setValue(this.plugin.settings.coverProperty)
+                    .onChange(async (value) => {
+                        const trimmed = value.trim()
+                        await this.plugin.updateSettings((draft) => {
+                            draft.coverProperty = trimmed.length > 0 ? trimmed : 'cover'
+                        })
+                    })
+            )
+
+        new Setting(containerEl)
             .setName('Sections to skip')
             .setDesc(
                 'Comma-separated list of heading names (case-insensitive) to skip. Applied to the manifest before parsing (drops authoring scaffolding like "Title Options", "Target Audience") and to each linked note when inlining (drops housekeeping sections like "Related", "References").'

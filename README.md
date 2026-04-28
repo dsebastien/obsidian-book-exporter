@@ -29,7 +29,8 @@ authors: [Sébastien Dubois]
 language: en
 publisher: DeveloPassion
 description: A book about turning notes into knowledge.
-cover: covers/the-context-layer.jpg
+cover: covers/the-context-layer.jpg                  # vault path, [[wikilink]], absolute path, or http(s) URL
+                                                      # the frontmatter key (default `cover`) is configurable in settings
 book_export:
   formats: [epub, pdf]
   pdf_engine: typst

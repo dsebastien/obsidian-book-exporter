@@ -17,6 +17,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | PDF engine | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf`. |
 | Default language | BCP-47 | `en` | Used when the manifest doesn't set `language`. |
 | Default author(s) | comma list | (empty) | Used when the manifest doesn't define `authors:` in its frontmatter. Empty falls back to `Anonymous` (with a warning). |
+| Cover frontmatter property | string | `cover` | Frontmatter key read for the book cover image. Set this to `cover_image`, `cover_url`, or whatever name fits your frontmatter conventions. The value can be a vault-relative path, an absolute path, an `[[wikilink]]`, or an `http(s)` URL (downloaded to the temp folder before pandoc runs). |
 | Sections to skip | comma list | `Related, References, Title Options, Target Audience` | Heading names (case-insensitive). Applied to the manifest body before parsing (drops authoring scaffolding) AND to each linked note when inlining (drops housekeeping sections). |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | TOC depth | integer | 2 | `--toc-depth=N`. |

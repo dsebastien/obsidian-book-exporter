@@ -19,6 +19,16 @@ export interface PluginSettings {
     defaultAuthors: string[]
 
     /**
+     * Frontmatter property name read for the cover image. The value can be
+     * a vault-relative path, an absolute filesystem path, an Obsidian
+     * `[[wikilink]]`, or an `http(s)` URL (downloaded to the temp dir
+     * before pandoc runs). Configurable so manifests can use whatever name
+     * fits the user's frontmatter conventions (e.g. `cover`, `cover_image`,
+     * `cover_url`).
+     */
+    coverProperty: string
+
+    /**
      * Heading names (case-insensitive) to skip — applied both to the manifest
      * body before parsing (so authoring scaffolding like "Title Options" or
      * "Target Audience" never reaches the export) and to each linked note
@@ -47,6 +57,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
     defaultAuthors: [],
+    coverProperty: 'cover',
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     includeTocByDefault: true,
     tocDepthDefault: 2,

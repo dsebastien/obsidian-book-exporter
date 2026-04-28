@@ -174,7 +174,7 @@ export class BookParser {
         const rights = asString(fm['rights'])
         const subject = asStringList(fm['subject'])
 
-        const cover = this.resolveCover(asString(fm['cover']), file)
+        const cover = this.resolveCover(asString(fm[this.settings.coverProperty]), file)
 
         return {
             title,
@@ -191,14 +191,21 @@ export class BookParser {
     }
 
     /**
-     * Tries to resolve `cover` from the manifest frontmatter into an absolute
-     * filesystem path. Accepts: vault-relative paths, plain attachment names,
-     * and absolute paths.
+     * Resolves the cover frontmatter value into either an absolute
+     * filesystem path or an `http(s)` URL. Accepts: `[[wikilink]]`,
+     * vault-relative paths, plain attachment names, absolute paths,
+     * and URLs (`http://`, `https://`). URLs are returned as-is and
+     * downloaded by the exporter before pandoc runs.
      */
     private resolveCover(value: string | undefined, source: TFile): string | undefined {
         if (value === undefined || value.length === 0) return undefined
 
-        const stripped = value.replace(/^\[\[|\]\]$/g, '').trim()
+        const trimmed = value.trim()
+        if (/^https?:\/\//i.test(trimmed)) {
+            return trimmed
+        }
+
+        const stripped = trimmed.replace(/^\[\[|\]\]$/g, '').trim()
 
         const direct = this.app.vault.getAbstractFileByPath(stripped)
         if (direct instanceof TFile) {
