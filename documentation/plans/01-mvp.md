@@ -13,7 +13,7 @@ Turn an Obsidian vault into a book authoring environment. Each book has ONE mani
 
 ## Book note conventions
 
-A book note is any note tagged `type/creation/book` (own-books type). The plugin recognizes the active note as a book note when its frontmatter or tags match.
+Any Markdown note can be used as a book note — there is no required tag, folder, or filename. The plugin treats the active note as the manifest; if it can't be parsed into a usable book, the validator reports the problem and the export is aborted.
 
 ### Frontmatter (book metadata)
 
@@ -158,7 +158,7 @@ All commands except `validate` and `preview` require a saved active note tagged 
 
 Run by `validate-book` and as a pre-flight before any export. All are blocking unless noted.
 
-1. Active note must be a book note (own-books type / `type/creation/book` tag).
+1. Active note must be a Markdown file. Any other file type is rejected.
 2. `title` and `authors` must be present (warning if missing — fall back to basename / `Anonymous`).
 3. The `Chapters` heading must exist and contain at least one bullet with a wikilink.
 4. Every bullet under each tracked heading must have exactly one wikilink that resolves to an existing note.

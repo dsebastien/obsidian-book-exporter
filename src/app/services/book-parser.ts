@@ -1,4 +1,4 @@
-import { TFile, type App, type CachedMetadata } from 'obsidian'
+import { TFile, type App } from 'obsidian'
 import type {
     BookEntry,
     BookExportOverrides,
@@ -14,25 +14,16 @@ import type { PluginSettings } from '../types/plugin-settings.intf'
  *
  * The parser is the only place that knows about Obsidian's `MetadataCache`.
  * Everything downstream (compiler, validator, exporter) takes a `ParsedBook`.
+ *
+ * Any Markdown note can be treated as a book manifest — there is no required
+ * tag. The validator decides whether a parsed note is actually shippable
+ * (i.e. has a `Chapters` section with at least one bulleted wikilink).
  */
 export class BookParser {
     constructor(
         private readonly app: App,
         private readonly settings: PluginSettings
     ) {}
-
-    /**
-     * Returns true when the given file looks like a book note. We test for the
-     * own-books mandatory tag (`type/creation/book`). Frontmatter `tags`
-     * (string or list) and inline `#tags` are both honoured by Obsidian's
-     * cache, so we read it from there.
-     */
-    isBookNote(file: TFile): boolean {
-        const cache = this.app.metadataCache.getFileCache(file)
-        if (!cache) return false
-        const fmTags = collectTags(cache)
-        return fmTags.has('type/creation/book')
-    }
 
     async parse(file: TFile): Promise<ParsedBook> {
         const cache = this.app.metadataCache.getFileCache(file)
@@ -246,24 +237,6 @@ function matchFirstWikilink(text: string): { linkpath: string; alias?: string } 
 function basenameFromLinkpath(linkpath: string): string {
     const last = linkpath.split('/').pop() ?? linkpath
     return last.replace(/\.md$/i, '')
-}
-
-function collectTags(cache: CachedMetadata): Set<string> {
-    const out = new Set<string>()
-    const fmTags = cache.frontmatter?.['tags']
-    if (Array.isArray(fmTags)) {
-        for (const tag of fmTags) {
-            if (typeof tag === 'string') out.add(tag.replace(/^#/, ''))
-        }
-    } else if (typeof fmTags === 'string') {
-        for (const tag of fmTags.split(/[\s,]+/)) {
-            if (tag.length > 0) out.add(tag.replace(/^#/, ''))
-        }
-    }
-    if (cache.tags) {
-        for (const tag of cache.tags) out.add(tag.tag.replace(/^#/, ''))
-    }
-    return out
 }
 
 function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {

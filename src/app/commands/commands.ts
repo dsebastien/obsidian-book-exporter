@@ -1,7 +1,7 @@
 import { Notice, TFile, type App } from 'obsidian'
 import * as path from 'node:path'
 import type BookExporterPlugin from '../../main'
-import type { ExportFormat } from '../domain/book-manifest.intf'
+import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
 import { BookParser } from '../services/book-parser'
 import { BookExporter } from '../services/exporter'
 import { BookValidator, formatReport } from '../services/validator'
@@ -137,7 +137,7 @@ async function openOutputFolder(ctx: CommandContext): Promise<void> {
 
 async function prepareBook(
     ctx: CommandContext
-): Promise<{ book: Awaited<ReturnType<BookParser['parse']>>; exporter: BookExporter } | null> {
+): Promise<{ book: ParsedBook; exporter: BookExporter } | null> {
     const file = activeBookFile(ctx)
     if (file === null) return null
 
@@ -167,12 +167,7 @@ async function prepareBook(
 function activeBookFile(ctx: CommandContext): TFile | null {
     const active = ctx.app.workspace.getActiveFile()
     if (!(active instanceof TFile) || active.extension !== 'md') {
-        new Notice('Open a book note before running this command.')
-        return null
-    }
-    const parser = new BookParser(ctx.app, ctx.plugin.settings)
-    if (!parser.isBookNote(active)) {
-        new Notice('The active note is not a book note (missing tag `type/creation/book`).')
+        new Notice('Open the book manifest note before running this command.')
         return null
     }
     return active

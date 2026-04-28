@@ -2,7 +2,7 @@
 
 ## Entities
 
-- **BookManifest (book note)** — a Markdown note with `tags: [type/creation/book]` whose frontmatter holds book metadata and whose body contains a structured TOC.
+- **BookManifest (book note)** — any Markdown note whose frontmatter holds book metadata and whose body contains a structured TOC. No tag, folder, or naming convention is required.
 - **BookMetadata** — title, authors, language, optional ISBN/publisher/cover/description/etc. Title falls back to the book note's basename without ` (Book)` suffix.
 - **BookExportOverrides** — per-book overrides (`output_dir`, `pdf_engine`, `toc_depth`, `include_toc`, `page_break_per_chapter`, `formats`, `pandoc_extra_args`).
 - **BookEntry** — one TOC entry: a vault-relative `filePath`, a `displayTitle`, and (only for chapters) nested `sections`.
