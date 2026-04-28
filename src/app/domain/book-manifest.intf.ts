@@ -1,6 +1,7 @@
 /**
  * Domain types describing a parsed book — its metadata, per-book export
- * overrides, and the ordered list of notes that make up the manuscript.
+ * overrides, and the heading tree of sections (each holding the wikilinks
+ * whose target notes will be inlined).
  *
  * Produced by the `BookParser`. Consumed by the compiler, validator and
  * exporter. Kept free of any Obsidian API to make the parser unit-testable.
@@ -20,7 +21,7 @@ export interface BookMetadata {
     description?: string
     /**
      * Absolute filesystem path to the cover image once resolved. Stays
-     * `undefined` when the book note doesn't define one.
+     * `undefined` when the manifest doesn't define one.
      */
     coverPath?: string
     rights?: string
@@ -39,27 +40,44 @@ export interface BookExportOverrides {
     formats?: ExportFormat[]
     /** Extra raw arguments forwarded to pandoc verbatim. */
     pandocExtraArgs?: string[]
+    /**
+     * Heading names (case-insensitive) to skip in linked notes when inlining
+     * them. Overrides the plugin-level default.
+     */
+    sectionsToSkip?: string[]
 }
 
 /**
- * One entry in the book's TOC. Chapters live under `Chapters`; entries can
- * have nested `sections` (only chapters do, in the MVP).
+ * One wikilink-resolved reference to a note that will be inlined at a given
+ * point in the book.
  */
-export interface BookEntry {
+export interface NoteReference {
     /** Vault-relative path of the linked note. */
     filePath: string
-    /** Title rendered in the manuscript (alias from the wikilink, or basename). */
+    /** Display title from the wikilink alias, or the note's basename. */
     displayTitle: string
-    /** Sections nested under this entry. Empty for non-chapter entries. */
-    sections: BookEntry[]
+}
+
+/**
+ * A heading in the manifest body. Holds the notes referenced by bullets
+ * directly under it (in source order) and the nested sub-sections.
+ */
+export interface BookSection {
+    /** Heading level (2..6). */
+    level: number
+    title: string
+    notes: NoteReference[]
+    children: BookSection[]
 }
 
 export interface ParsedBook {
-    /** Vault-relative path of the book note itself. */
+    /** Vault-relative path of the manifest note itself. */
     bookNotePath: string
     metadata: BookMetadata
     overrides: BookExportOverrides
-    frontMatter: BookEntry[]
-    chapters: BookEntry[]
-    backMatter: BookEntry[]
+    /**
+     * Top-level sections in body order. Typically all the same level
+     * (the lowest non-1 heading level the manifest uses).
+     */
+    sections: BookSection[]
 }

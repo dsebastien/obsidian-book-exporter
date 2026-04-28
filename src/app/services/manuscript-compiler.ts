@@ -1,7 +1,7 @@
 import { TFile, type App } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import type { BookEntry, ParsedBook } from '../domain/book-manifest.intf'
+import type { BookSection, NoteReference, ParsedBook } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import { stripFrontmatter } from './book-parser'
 
@@ -17,9 +17,11 @@ export interface CompiledManuscript {
 }
 
 /**
- * Concatenates every note referenced by a {@link ParsedBook} into a single
- * Markdown file ready to feed to Pandoc. Frontmatter is stripped, headings are
- * demoted, and Obsidian-only syntax is rewritten.
+ * Walks a {@link ParsedBook}'s heading tree and produces a single Markdown
+ * file for Pandoc. Each section's heading is emitted at its original level,
+ * its referenced notes are inlined under it (frontmatter stripped, configured
+ * sections skipped, headings demoted to fit), and child sections are rendered
+ * recursively.
  */
 export class ManuscriptCompiler {
     constructor(
@@ -31,33 +33,30 @@ export class ManuscriptCompiler {
         const resourcesDir = path.join(tempDir, '_resources')
         await fs.mkdir(resourcesDir, { recursive: true })
 
+        const sectionsToSkip = book.overrides.sectionsToSkip ?? this.settings.sectionsToSkip
         const transformer = new BodyTransformer(this.app, resourcesDir)
+        const pageBreak =
+            book.overrides.pageBreakPerChapter ?? this.settings.pageBreakPerChapterDefault
+        const breakLevel = lowestSectionLevel(book.sections)
+
         const parts: string[] = []
+        parts.push(`# ${book.metadata.title}`)
+        parts.push('')
 
-        const pageBreak = book.overrides.pageBreakPerChapter ?? this.settings.pageBreakPerChapterDefault
-
-        for (const entry of book.frontMatter) {
-            parts.push(await this.renderEntry(entry, transformer, 1))
-        }
-
-        let firstChapter = true
-        for (const chapter of book.chapters) {
-            if (pageBreak && !firstChapter) parts.push(PAGE_BREAK)
-            firstChapter = false
-
-            parts.push(await this.renderEntry(chapter, transformer, 1))
-            for (const section of chapter.sections) {
-                parts.push(await this.renderEntry(section, transformer, 2))
-            }
-        }
-
-        for (const entry of book.backMatter) {
-            if (pageBreak) parts.push(PAGE_BREAK)
-            parts.push(await this.renderEntry(entry, transformer, 1))
+        let isFirstTopLevel = true
+        for (const section of book.sections) {
+            const rendered = await this.renderSection(
+                section,
+                transformer,
+                sectionsToSkip,
+                pageBreak && breakLevel !== null && section.level === breakLevel && !isFirstTopLevel
+            )
+            parts.push(rendered)
+            isFirstTopLevel = false
         }
 
         const manuscriptPath = path.join(tempDir, 'manuscript.md')
-        await fs.writeFile(manuscriptPath, parts.join('\n\n'), 'utf8')
+        await fs.writeFile(manuscriptPath, parts.join('\n').trim() + '\n', 'utf8')
 
         const metadataPath = path.join(tempDir, 'metadata.yaml')
         await fs.writeFile(metadataPath, buildMetadataYaml(book), 'utf8')
@@ -65,31 +64,163 @@ export class ManuscriptCompiler {
         return { manuscriptPath, resourcesDir, tempDir, metadataPath }
     }
 
-    private async renderEntry(
-        entry: BookEntry,
+    private async renderSection(
+        section: BookSection,
         transformer: BodyTransformer,
-        headingLevel: 1 | 2
+        sectionsToSkip: string[],
+        prependPageBreak: boolean
     ): Promise<string> {
-        const file = this.app.vault.getAbstractFileByPath(entry.filePath)
+        const out: string[] = []
+        if (prependPageBreak) out.push(PAGE_BREAK)
+        out.push(`${'#'.repeat(section.level)} ${section.title}`)
+        out.push('')
+
+        for (const ref of section.notes) {
+            const inlined = await this.inlineNote(ref, section.level, transformer, sectionsToSkip)
+            if (inlined.trim().length > 0) {
+                out.push(inlined.trim())
+                out.push('')
+            }
+        }
+
+        for (const child of section.children) {
+            const rendered = await this.renderSection(child, transformer, sectionsToSkip, false)
+            out.push(rendered)
+        }
+
+        return out.join('\n')
+    }
+
+    /**
+     * Reads the linked note, strips its frontmatter, drops its leading H1,
+     * removes any heading whose name is in `sectionsToSkip` (with its body,
+     * up to the next same-or-higher heading), demotes remaining headings so
+     * they fit beneath the manifest section, and runs the body transformer.
+     */
+    private async inlineNote(
+        ref: NoteReference,
+        parentLevel: number,
+        transformer: BodyTransformer,
+        sectionsToSkip: string[]
+    ): Promise<string> {
+        const file = this.app.vault.getAbstractFileByPath(ref.filePath)
         if (!(file instanceof TFile)) {
-            return `${'#'.repeat(headingLevel)} ${entry.displayTitle}\n\n*[Missing note: ${entry.filePath}]*`
+            return `*[Missing note: ${ref.filePath}]*`
         }
         const raw = await this.app.vault.cachedRead(file)
-        const stripped = stripFrontmatter(raw)
-        const headerless = dropFirstH1(stripped)
-        const demoted = demoteHeadings(headerless, headingLevel)
-        const transformed = await transformer.transform(demoted, file)
-        const heading = `${'#'.repeat(headingLevel)} ${entry.displayTitle}`
-        return `${heading}\n\n${transformed.trim()}\n`
+        const body = stripFrontmatter(raw)
+        const withoutSkipped = stripSkippedSections(body, sectionsToSkip)
+        const headerless = dropFirstH1(withoutSkipped)
+        const demoted = demoteHeadings(headerless, parentLevel)
+        return transformer.transform(demoted, file)
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+const PAGE_BREAK = '\n\\newpage\n'
+const FENCE_RE = /^\s*(```|~~~)/
+
+function lowestSectionLevel(sections: BookSection[]): number | null {
+    let lowest: number | null = null
+    for (const section of sections) {
+        if (lowest === null || section.level < lowest) lowest = section.level
+    }
+    return lowest
+}
+
+/**
+ * Walks `body` line-by-line. When a heading whose text matches an entry in
+ * `skip` (case-insensitive) is encountered, the heading and every line that
+ * follows are dropped until a heading at the same-or-higher level appears.
+ * Code fences are preserved.
+ */
+export function stripSkippedSections(body: string, skip: string[]): string {
+    if (skip.length === 0) return body
+    const skipSet = new Set(skip.map((s) => s.trim().toLowerCase()))
+    const lines = body.split(/\r?\n/)
+    const out: string[] = []
+    let inFence = false
+    let skipLevel: number | null = null
+
+    for (const line of lines) {
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            if (skipLevel === null) out.push(line)
+            continue
+        }
+        if (inFence) {
+            if (skipLevel === null) out.push(line)
+            continue
+        }
+
+        const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
+        if (heading !== null) {
+            const level = heading[1]!.length
+            const text = heading[2]!.trim().toLowerCase()
+            if (skipLevel !== null && level <= skipLevel) {
+                skipLevel = null
+            }
+            if (skipLevel === null) {
+                if (skipSet.has(text)) {
+                    skipLevel = level
+                    continue
+                }
+                out.push(line)
+            }
+            continue
+        }
+        if (skipLevel === null) out.push(line)
+    }
+    return out.join('\n')
+}
+
+function dropFirstH1(content: string): string {
+    const lines = content.split(/\r?\n/)
+    let inFence = false
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            continue
+        }
+        if (inFence) continue
+        if (/^#\s+/.test(line)) {
+            lines.splice(i, 1)
+            return lines.join('\n')
+        }
+        if (line.trim().length > 0) break
+    }
+    return content
+}
+
+/**
+ * Demotes every ATX heading by `parentLevel` so that the linked note's
+ * headings sit beneath a manifest heading at level `parentLevel`. Caps at H6.
+ */
+function demoteHeadings(content: string, parentLevel: number): string {
+    const lines = content.split(/\r?\n/)
+    let inFence = false
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            continue
+        }
+        if (inFence) continue
+        const m = /^(#{1,6})(\s+.*)$/.exec(line)
+        if (!m) continue
+        const newLevel = Math.min(6, m[1]!.length + parentLevel - 1)
+        lines[i] = '#'.repeat(newLevel) + m[2]!
+    }
+    return lines.join('\n')
 }
 
 /* ------------------------------------------------------------------ */
 /* body transformer                                                    */
 /* ------------------------------------------------------------------ */
-
-const PAGE_BREAK = '\n\n```{=openxml}\n<w:br w:type="page"/>\n```\n\n\\newpage\n'
-const FENCE_RE = /^\s*(```|~~~)/
 
 class BodyTransformer {
     private readonly copied = new Map<string, string>()
@@ -245,46 +376,6 @@ async function replaceAsync(
     const replacements = await Promise.all(tasks)
     let i = 0
     return str.replace(regex, () => replacements[i++] ?? '')
-}
-
-function dropFirstH1(content: string): string {
-    const lines = content.split(/\r?\n/)
-    let inFence = false
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!
-        if (FENCE_RE.test(line)) {
-            inFence = !inFence
-            continue
-        }
-        if (inFence) continue
-        if (/^#\s+/.test(line)) {
-            lines.splice(i, 1)
-            return lines.join('\n')
-        }
-        if (line.trim().length > 0) break
-    }
-    return content
-}
-
-/**
- * Demotes every ATX heading by `offset` levels, capping at H6.
- */
-function demoteHeadings(content: string, offset: number): string {
-    const lines = content.split(/\r?\n/)
-    let inFence = false
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!
-        if (FENCE_RE.test(line)) {
-            inFence = !inFence
-            continue
-        }
-        if (inFence) continue
-        const m = /^(#{1,6})(\s+.*)$/.exec(line)
-        if (!m) continue
-        const newLevel = Math.min(6, m[1]!.length + offset)
-        lines[i] = '#'.repeat(newLevel) + m[2]!
-    }
-    return lines.join('\n')
 }
 
 /* ------------------------------------------------------------------ */

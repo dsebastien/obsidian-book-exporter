@@ -10,12 +10,10 @@ Reference of every plugin setting and per-book frontmatter override. See `docume
 | `defaultOutputDir` | string | `Exports/Books` | Vault-relative. |
 | `defaultPdfEngine` | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf` |
 | `defaultLanguage` | string | `en` | BCP-47 |
-| `frontMatterHeading` | string | `Front Matter` | |
-| `chaptersHeading` | string | `Chapters` | |
-| `backMatterHeading` | string | `Back Matter` | |
+| `sectionsToSkip` | list | `[Related, References]` | Heading names (case-insensitive) stripped from each linked note before inlining. Replaces — does not extend — when overridden per book. |
 | `includeTocByDefault` | boolean | true | |
 | `tocDepthDefault` | integer | 2 | |
-| `pageBreakPerChapterDefault` | boolean | true | |
+| `pageBreakPerChapterDefault` | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |
 | `defaultFormats` | list | `[epub, pdf]` | Used by the "all formats" command. |
 | `keepTempFiles` | boolean | false | Debug. |
 | `debug` | boolean | false | Verbose console logging. |
@@ -30,6 +28,7 @@ book_export:
   include_toc: true
   page_break_per_chapter: true
   formats: [epub, pdf]
+  sections_to_skip: [Related, References, Notes]
   pandoc_extra_args: ["--top-level-division=chapter"]
 ```
 

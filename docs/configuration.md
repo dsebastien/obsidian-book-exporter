@@ -16,12 +16,10 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Default formats | comma list | `epub,pdf` | Used by **Export to all formats** when the manifest doesn't specify any. |
 | PDF engine | enum | `typst` | `typst` (recommended) / `weasyprint` / `xelatex` / `tectonic` / `wkhtmltopdf`. |
 | Default language | BCP-47 | `en` | Used when the manifest doesn't set `language`. |
-| Front-matter heading | string | `Front Matter` | Body heading for the front-matter list. |
-| Chapters heading | string | `Chapters` | Body heading for the chapters list. |
-| Back-matter heading | string | `Back Matter` | Body heading for the back-matter list. |
+| Sections to skip | comma list | `Related, References` | Heading names (case-insensitive) stripped from each linked note before inlining. |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | TOC depth | integer | 2 | `--toc-depth=N`. |
-| Page break per chapter | boolean | true | Inserts a hard page break between chapters. |
+| Page break per chapter | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |
 | Keep temporary files | boolean | false | Debug — keeps the compiled manuscript and resources after export. |
 | Verbose console logging | boolean | false | Debug. |
 
@@ -37,6 +35,7 @@ book_export:
   include_toc: true
   page_break_per_chapter: true
   formats: [epub, pdf]
+  sections_to_skip: [Related, References, Notes]
   pandoc_extra_args:
     - --top-level-division=chapter
     - --resource-path=.
@@ -50,6 +49,7 @@ book_export:
 | `include_toc` | boolean | Whether to include a TOC for this book. |
 | `page_break_per_chapter` | boolean | Page-break behaviour for this book. |
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
+| `sections_to_skip` | list | Heading names stripped from linked notes before inlining (case-insensitive). Replaces — does not extend — the global setting. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
 
 ## External tools

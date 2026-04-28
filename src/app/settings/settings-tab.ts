@@ -19,7 +19,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         this.renderTools(containerEl)
         this.renderOutput(containerEl)
-        this.renderHeadings(containerEl)
+        this.renderProcessing(containerEl)
         this.renderRendering(containerEl)
         this.renderDebug(containerEl)
         this.renderSupport(containerEl)
@@ -63,7 +63,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Default formats')
             .setDesc(
-                'Comma-separated list. Used by "Export to all formats" when the book note doesn\'t specify any.'
+                'Comma-separated list. Used by "Export to all formats" when the manifest doesn\'t specify any.'
             )
             .addText((t) =>
                 t
@@ -79,7 +79,9 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('PDF engine')
-            .setDesc('Pandoc PDF engine used unless the book overrides it. Typst is recommended — single small binary, no LaTeX install needed.')
+            .setDesc(
+                'Pandoc PDF engine used unless the book overrides it. Typst is recommended — single small binary, no LaTeX install needed.'
+            )
             .addDropdown((d) => {
                 for (const engine of PDF_ENGINES) d.addOption(engine, engine)
                 d.setValue(this.plugin.settings.defaultPdfEngine).onChange(async (value) => {
@@ -91,7 +93,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Default language')
-            .setDesc('BCP-47 code (en, fr, ...) used when the book note doesn\'t set one.')
+            .setDesc('BCP-47 code (en, fr, ...) used when the manifest doesn\'t set one.')
             .addText((t) =>
                 t.setValue(this.plugin.settings.defaultLanguage).onChange(async (value) => {
                     await this.plugin.updateSettings((draft) => {
@@ -101,29 +103,26 @@ export class BookExporterSettingTab extends PluginSettingTab {
             )
     }
 
-    private renderHeadings(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Body headings').setHeading()
-        new Setting(containerEl).setName('Front-matter heading').addText((t) =>
-            t.setValue(this.plugin.settings.frontMatterHeading).onChange(async (value) => {
-                await this.plugin.updateSettings((draft) => {
-                    draft.frontMatterHeading = value.trim() || 'Front Matter'
-                })
+    private renderProcessing(containerEl: HTMLElement): void {
+        new Setting(containerEl).setName('Note processing').setHeading()
+
+        new Setting(containerEl)
+            .setName('Sections to skip')
+            .setDesc(
+                'Comma-separated list of heading names (case-insensitive) to strip from each linked note before inlining. Default: Related, References.'
+            )
+            .addTextArea((t) => {
+                t.inputEl.rows = 2
+                t.inputEl.cols = 40
+                t.setPlaceholder('Related, References')
+                    .setValue(this.plugin.settings.sectionsToSkip.join(', '))
+                    .onChange(async (value) => {
+                        const list = parseList(value)
+                        await this.plugin.updateSettings((draft) => {
+                            draft.sectionsToSkip = list
+                        })
+                    })
             })
-        )
-        new Setting(containerEl).setName('Chapters heading').addText((t) =>
-            t.setValue(this.plugin.settings.chaptersHeading).onChange(async (value) => {
-                await this.plugin.updateSettings((draft) => {
-                    draft.chaptersHeading = value.trim() || 'Chapters'
-                })
-            })
-        )
-        new Setting(containerEl).setName('Back-matter heading').addText((t) =>
-            t.setValue(this.plugin.settings.backMatterHeading).onChange(async (value) => {
-                await this.plugin.updateSettings((draft) => {
-                    draft.backMatterHeading = value.trim() || 'Back Matter'
-                })
-            })
-        )
     }
 
     private renderRendering(containerEl: HTMLElement): void {
@@ -145,15 +144,20 @@ export class BookExporterSettingTab extends PluginSettingTab {
                 }
             })
         )
-        new Setting(containerEl).setName('Page break per chapter').addToggle((t) =>
-            t
-                .setValue(this.plugin.settings.pageBreakPerChapterDefault)
-                .onChange(async (value) => {
-                    await this.plugin.updateSettings((draft) => {
-                        draft.pageBreakPerChapterDefault = value
+        new Setting(containerEl)
+            .setName('Page break per chapter')
+            .setDesc(
+                'Insert a page break before each top-level section (the lowest-numbered heading level used in the manifest).'
+            )
+            .addToggle((t) =>
+                t
+                    .setValue(this.plugin.settings.pageBreakPerChapterDefault)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.pageBreakPerChapterDefault = value
+                        })
                     })
-                })
-        )
+            )
     }
 
     private renderDebug(containerEl: HTMLElement): void {
@@ -200,4 +204,11 @@ function parseFormats(value: string): ExportFormat[] {
         .filter((p) => p.length > 0)
     const out = parts.filter((p): p is ExportFormat => FORMATS.includes(p as ExportFormat))
     return out.length > 0 ? out : FORMATS
+}
+
+function parseList(value: string): string[] {
+    return value
+        .split(/[\n,]+/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0)
 }

@@ -1,11 +1,11 @@
 import { TFile, type App } from 'obsidian'
-import type { BookEntry, ParsedBook } from '../domain/book-manifest.intf'
+import type { BookSection, ParsedBook } from '../domain/book-manifest.intf'
 import type { ValidationIssue, ValidationReport } from '../domain/export-options.intf'
 
 /**
  * Quality gate before any export. Verifies that the parsed book has the
- * minimum metadata, at least one chapter, and that every wikilink in the TOC
- * points to a real note in the vault.
+ * minimum metadata, at least one section, and that every wikilink in the
+ * manifest points to a real note in the vault.
  */
 export class BookValidator {
     constructor(private readonly app: App) {}
@@ -22,24 +22,24 @@ export class BookValidator {
                 message: 'Missing or default `authors` field — falling back to "Anonymous".'
             })
         }
-        if (book.chapters.length === 0) {
+        if (book.sections.length === 0) {
             issues.push({
                 level: 'error',
-                message: 'No chapters found. Make sure the book note has a "Chapters" section with bulleted wikilinks.'
+                message:
+                    'No sections found. The manifest body must contain at least one ## heading with a list of wikilinks underneath.'
             })
         }
 
-        for (const entry of book.frontMatter) this.validateEntry(entry, issues, 'front matter')
-        for (const entry of book.chapters) {
-            this.validateEntry(entry, issues, 'chapter')
-            for (const section of entry.sections) {
-                this.validateEntry(section, issues, `section of "${entry.displayTitle}"`)
-            }
+        let totalNotes = 0
+        for (const section of book.sections) {
+            totalNotes += this.validateSection(section, issues, [])
         }
-        for (const entry of book.backMatter) this.validateEntry(entry, issues, 'back matter')
-
-        if (book.metadata.coverPath !== undefined) {
-            // Filesystem check is async-only; defer to runtime in the exporter.
+        if (book.sections.length > 0 && totalNotes === 0) {
+            issues.push({
+                level: 'error',
+                message:
+                    'Manifest has sections but no resolved note references. Add bulleted wikilinks under your headings.'
+            })
         }
 
         return {
@@ -49,15 +49,29 @@ export class BookValidator {
         }
     }
 
-    private validateEntry(entry: BookEntry, issues: ValidationIssue[], where: string): void {
-        const target = this.app.vault.getAbstractFileByPath(entry.filePath)
-        if (!(target instanceof TFile)) {
-            issues.push({
-                level: 'error',
-                message: `Unresolved link in ${where}: "${entry.displayTitle}" → ${entry.filePath}`,
-                location: entry.filePath
-            })
+    private validateSection(
+        section: BookSection,
+        issues: ValidationIssue[],
+        ancestors: string[]
+    ): number {
+        const path = [...ancestors, section.title].filter((p) => p.length > 0).join(' › ')
+        let count = 0
+        for (const ref of section.notes) {
+            const target = this.app.vault.getAbstractFileByPath(ref.filePath)
+            if (!(target instanceof TFile)) {
+                issues.push({
+                    level: 'error',
+                    message: `Unresolved link in "${path}": "${ref.displayTitle}" → ${ref.filePath}`,
+                    location: ref.filePath
+                })
+            } else {
+                count += 1
+            }
         }
+        for (const child of section.children) {
+            count += this.validateSection(child, issues, [...ancestors, section.title])
+        }
+        return count
     }
 }
 

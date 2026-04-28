@@ -4,14 +4,19 @@ The plugin is a thin orchestration layer over **Pandoc**. Obsidian provides note
 
 ```
 ┌────────────────────┐
-│ Active book note   │  Markdown w/ frontmatter + TOC
+│ Active manifest    │  Markdown w/ frontmatter + heading tree + bulleted wikilinks
 └────────┬───────────┘
          │ (BookParser)
          ▼
 ┌────────────────────┐
-│ ParsedBook         │  metadata + ordered FilePath[]
+│ ParsedBook         │  metadata + sections: BookSection[]  (recursive heading tree)
 └────────┬───────────┘
          │ (ManuscriptCompiler)
+         │   - walks the tree, emits each section at its level
+         │   - inlines linked notes (strip frontmatter, drop skipped sections,
+         │     drop first H1, demote remaining headings, rewrite Obsidian syntax)
+         │   - copies referenced images into _resources/
+         │   - inserts page breaks before top-level sections (optional)
          ▼
 ┌────────────────────┐
 │ tmp/<bookSlug>/    │  manuscript.md, metadata.yaml, _resources/
@@ -23,7 +28,7 @@ The plugin is a thin orchestration layer over **Pandoc**. Obsidian provides note
 
 ## Layers
 
-- **`domain/`** — pure types (`ParsedBook`, `BookEntry`, `BookMetadata`, `ExportFormat`, etc.). No Obsidian or Node dependencies.
+- **`domain/`** — pure types (`ParsedBook`, `BookSection`, `NoteReference`, `BookMetadata`, `ExportFormat`, etc.). No Obsidian or Node dependencies.
 - **`services/`** — business logic. The parser is the only service that touches `app.metadataCache` and `app.vault`; everything downstream is fed a `ParsedBook`. The Pandoc runner shells out via `child_process.spawn`.
 - **`commands/`** — wires the services to Obsidian commands and shows feedback through `Notice`.
 - **`settings/`** — `BookExporterSettingTab` reads/writes the immer-managed `PluginSettings`.

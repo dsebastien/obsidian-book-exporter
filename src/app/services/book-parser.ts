@@ -1,23 +1,31 @@
 import { TFile, type App } from 'obsidian'
 import type {
-    BookEntry,
     BookExportOverrides,
     BookMetadata,
+    BookSection,
     ExportFormat,
+    NoteReference,
     ParsedBook,
     PdfEngine
 } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 
 /**
- * Parses a book note (the manifest) into a {@link ParsedBook}.
+ * Parses a manifest note into a {@link ParsedBook}.
  *
- * The parser is the only place that knows about Obsidian's `MetadataCache`.
+ * Contract:
+ * - The first `# H1` in the body (or the frontmatter `title`, or the note's
+ *   basename) is the book title.
+ * - Every `##`..`######` heading creates a {@link BookSection} at the matching
+ *   level, nested under the previous higher-level section.
+ * - Every bullet under a section that contains one or more wikilinks
+ *   contributes its wikilinks (in source order) to that section's note list.
+ * - Bullets without wikilinks are ignored. Bullet text around the wikilink is
+ *   considered author commentary and dropped.
+ * - Code fences are skipped during parsing.
+ *
+ * The parser is the only service that knows about Obsidian's `MetadataCache`.
  * Everything downstream (compiler, validator, exporter) takes a `ParsedBook`.
- *
- * Any Markdown note can be treated as a book manifest — there is no required
- * tag. The validator decides whether a parsed note is actually shippable
- * (i.e. has a `Chapters` section with at least one bulleted wikilink).
  */
 export class BookParser {
     constructor(
@@ -31,34 +39,99 @@ export class BookParser {
             throw new Error(`Could not read metadata cache for ${file.path}`)
         }
         const fm = cache.frontmatter ?? {}
-        const body = await this.readBodyWithoutFrontmatter(file)
+        const raw = await this.app.vault.cachedRead(file)
+        const body = stripFrontmatter(raw)
 
-        const metadata = this.extractMetadata(fm, file)
         const overrides = extractOverrides(fm)
 
-        const sections = this.parseTocSections(body)
-        const frontMatter = sections.front.map((entry) => this.resolveEntry(entry, file))
-        const chapters = sections.chapters.map((entry) => this.resolveEntry(entry, file))
-        const backMatter = sections.back.map((entry) => this.resolveEntry(entry, file))
+        const { sections, bodyTitle } = this.parseBody(body, file)
+        const metadata = this.extractMetadata(fm, file, bodyTitle)
 
         return {
             bookNotePath: file.path,
             metadata,
             overrides,
-            frontMatter,
-            chapters,
-            backMatter
+            sections
         }
     }
 
-    private async readBodyWithoutFrontmatter(file: TFile): Promise<string> {
-        const raw = await this.app.vault.cachedRead(file)
-        return stripFrontmatter(raw)
+    private parseBody(
+        body: string,
+        source: TFile
+    ): { sections: BookSection[]; bodyTitle: string | undefined } {
+        const lines = body.split(/\r?\n/)
+        const root: BookSection = { level: 1, title: '', notes: [], children: [] }
+        const stack: BookSection[] = [root]
+        let bodyTitle: string | undefined
+        let inFence = false
+
+        for (const line of lines) {
+            if (FENCE_RE.test(line)) {
+                inFence = !inFence
+                continue
+            }
+            if (inFence) continue
+
+            const heading = matchHeading(line)
+            if (heading !== null) {
+                if (heading.level === 1) {
+                    if (bodyTitle === undefined) bodyTitle = heading.text.trim()
+                    continue
+                }
+                while (
+                    stack.length > 1 &&
+                    stack[stack.length - 1]!.level >= heading.level
+                ) {
+                    stack.pop()
+                }
+                const section: BookSection = {
+                    level: heading.level,
+                    title: heading.text.trim(),
+                    notes: [],
+                    children: []
+                }
+                stack[stack.length - 1]!.children.push(section)
+                stack.push(section)
+                continue
+            }
+
+            const bullet = matchBullet(line)
+            if (bullet === null) continue
+            if (stack.length === 1) continue
+
+            const links = matchAllWikilinks(bullet.text)
+            if (links.length === 0) continue
+            const current = stack[stack.length - 1]!
+            for (const link of links) {
+                current.notes.push(this.resolveLink(link, source))
+            }
+        }
+
+        return { sections: root.children, bodyTitle }
     }
 
-    private extractMetadata(fm: Record<string, unknown>, file: TFile): BookMetadata {
+    private resolveLink(
+        link: { linkpath: string; alias?: string },
+        source: TFile
+    ): NoteReference {
+        const target = this.app.metadataCache.getFirstLinkpathDest(link.linkpath, source.path)
+        const filePath = target instanceof TFile ? target.path : link.linkpath
+        const displayTitle =
+            link.alias?.trim() ||
+            (target instanceof TFile ? target.basename : basenameFromLinkpath(link.linkpath))
+        return { filePath, displayTitle }
+    }
+
+    private extractMetadata(
+        fm: Record<string, unknown>,
+        file: TFile,
+        bodyTitle: string | undefined
+    ): BookMetadata {
+        const fmTitle = asString(fm['title'])
         const title =
-            asString(fm['title']) ?? file.basename.replace(/\s*\(Book\)\s*$/i, '').trim()
+            fmTitle ??
+            bodyTitle?.replace(/\s*\(Book\)\s*$/i, '').trim() ??
+            file.basename.replace(/\s*\(Book\)\s*$/i, '').trim()
         const authors = asStringList(fm['authors'])
         const language = asString(fm['language']) ?? this.settings.defaultLanguage
 
@@ -86,84 +159,7 @@ export class BookParser {
     }
 
     /**
-     * Walks the body once and pulls out the bullet lists that follow each
-     * recognised heading. Code fences are skipped entirely.
-     */
-    private parseTocSections(body: string): {
-        front: RawEntry[]
-        chapters: RawEntry[]
-        back: RawEntry[]
-    } {
-        const want: Record<'front' | 'chapters' | 'back', string> = {
-            front: this.settings.frontMatterHeading.trim().toLowerCase(),
-            chapters: this.settings.chaptersHeading.trim().toLowerCase(),
-            back: this.settings.backMatterHeading.trim().toLowerCase()
-        }
-
-        const lines = body.split(/\r?\n/)
-        let inFence = false
-        let active: 'front' | 'chapters' | 'back' | null = null
-        const buckets: { front: RawEntry[]; chapters: RawEntry[]; back: RawEntry[] } = {
-            front: [],
-            chapters: [],
-            back: []
-        }
-        let lastTopLevel: RawEntry | null = null
-
-        for (const line of lines) {
-            if (FENCE_RE.test(line)) {
-                inFence = !inFence
-                continue
-            }
-            if (inFence) continue
-
-            const heading = matchHeading(line)
-            if (heading !== null) {
-                const lower = heading.text.trim().toLowerCase()
-                if (lower === want.front) active = 'front'
-                else if (lower === want.chapters) active = 'chapters'
-                else if (lower === want.back) active = 'back'
-                else active = null
-                lastTopLevel = null
-                continue
-            }
-
-            if (active === null) continue
-
-            const bullet = matchBullet(line)
-            if (bullet === null) continue
-
-            const link = matchFirstWikilink(bullet.text)
-            if (link === null) continue
-
-            const entry: RawEntry = { ...link, sections: [] }
-            if (bullet.indent === 0) {
-                buckets[active].push(entry)
-                lastTopLevel = active === 'chapters' ? entry : null
-            } else if (active === 'chapters' && lastTopLevel !== null) {
-                lastTopLevel.sections.push(entry)
-            }
-            // Nested entries under non-chapter sections are ignored on purpose.
-        }
-
-        return buckets
-    }
-
-    private resolveEntry(raw: RawEntry, source: TFile): BookEntry {
-        const target = this.app.metadataCache.getFirstLinkpathDest(raw.linkpath, source.path)
-        const filePath = target instanceof TFile ? target.path : raw.linkpath
-        const displayTitle =
-            raw.alias?.trim() ||
-            (target instanceof TFile ? target.basename : basenameFromLinkpath(raw.linkpath))
-        return {
-            filePath,
-            displayTitle,
-            sections: raw.sections.map((s) => this.resolveEntry(s, source))
-        }
-    }
-
-    /**
-     * Tries to resolve `cover` from the book frontmatter into an absolute
+     * Tries to resolve `cover` from the manifest frontmatter into an absolute
      * filesystem path. Accepts: vault-relative paths, plain attachment names,
      * and absolute paths.
      */
@@ -202,16 +198,10 @@ export class BookParser {
 /* internals                                                           */
 /* ------------------------------------------------------------------ */
 
-interface RawEntry {
-    linkpath: string
-    alias?: string
-    sections: RawEntry[]
-}
-
 const FENCE_RE = /^\s*(```|~~~)/
 const HEADING_RE = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/
 const BULLET_RE = /^(\s*)(?:[-*+])\s+(.*)$/
-const WIKILINK_RE = /\[\[([^\]|#^]+)(?:#[^\]|]+)?(?:\^[^\]|]+)?(?:\|([^\]]+))?\]\]/
+const WIKILINK_RE = /\[\[([^\]|#^]+)(?:#[^\]|]+)?(?:\^[^\]|]+)?(?:\|([^\]]+))?\]\]/g
 
 function matchHeading(line: string): { level: number; text: string } | null {
     const m = HEADING_RE.exec(line)
@@ -219,19 +209,22 @@ function matchHeading(line: string): { level: number; text: string } | null {
     return { level: m[1]!.length, text: m[2]! }
 }
 
-function matchBullet(line: string): { indent: number; text: string } | null {
+function matchBullet(line: string): { text: string } | null {
     const m = BULLET_RE.exec(line)
     if (!m) return null
-    const indent = Math.floor(m[1]!.length / 2)
-    return { indent, text: m[2]! }
+    return { text: m[2]! }
 }
 
-function matchFirstWikilink(text: string): { linkpath: string; alias?: string } | null {
-    const m = WIKILINK_RE.exec(text)
-    if (!m) return null
-    const linkpath = m[1]!.trim()
-    const alias = m[2]?.trim()
-    return alias !== undefined && alias.length > 0 ? { linkpath, alias } : { linkpath }
+function matchAllWikilinks(text: string): { linkpath: string; alias?: string }[] {
+    const out: { linkpath: string; alias?: string }[] = []
+    let m: RegExpExecArray | null
+    WIKILINK_RE.lastIndex = 0
+    while ((m = WIKILINK_RE.exec(text)) !== null) {
+        const linkpath = m[1]!.trim()
+        const alias = m[2]?.trim()
+        out.push(alias !== undefined && alias.length > 0 ? { linkpath, alias } : { linkpath })
+    }
+    return out
 }
 
 function basenameFromLinkpath(linkpath: string): string {
@@ -265,6 +258,9 @@ function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {
 
     const extraArgs = asStringList(r['pandoc_extra_args'])
     if (extraArgs.length > 0) overrides.pandocExtraArgs = extraArgs
+
+    const sectionsToSkip = asStringList(r['sections_to_skip'])
+    if (sectionsToSkip.length > 0) overrides.sectionsToSkip = sectionsToSkip
 
     return overrides
 }
@@ -311,11 +307,11 @@ function asStringList(v: unknown): string[] {
 }
 
 function isPdfEngine(v: string): v is PdfEngine {
-    return ['xelatex', 'weasyprint', 'wkhtmltopdf', 'tectonic', 'typst'].includes(v)
+    return ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf'].includes(v)
 }
 
 function isExportFormat(v: string): v is ExportFormat {
-    return v === 'epub' || v === 'pdf' || v === 'mobi'
+    return v === 'epub' || v === 'pdf'
 }
 
 /**

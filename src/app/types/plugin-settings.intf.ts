@@ -8,18 +8,19 @@ export interface PluginSettings {
     defaultPdfEngine: PdfEngine
     defaultLanguage: string
 
-    /** Body heading that introduces the front-matter list (default: "Front Matter"). */
-    frontMatterHeading: string
-    /** Body heading that introduces the chapters list (default: "Chapters"). */
-    chaptersHeading: string
-    /** Body heading that introduces the back-matter list (default: "Back Matter"). */
-    backMatterHeading: string
+    /**
+     * Heading names (case-insensitive) to strip from linked notes when
+     * inlining them — typically housekeeping sections like "Related" or
+     * "References" that don't belong in a book. Per-book `sectionsToSkip`
+     * overrides this value.
+     */
+    sectionsToSkip: string[]
 
     includeTocByDefault: boolean
     tocDepthDefault: number
     pageBreakPerChapterDefault: boolean
 
-    /** Formats triggered by the "export all" command when the book note doesn't override them. */
+    /** Formats triggered by the "export all" command when the manifest doesn't override them. */
     defaultFormats: ExportFormat[]
 
     /** Keep the temp manuscript and resources after a successful export (debug). */
@@ -33,9 +34,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultOutputDir: 'Exports/Books',
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',
-    frontMatterHeading: 'Front Matter',
-    chaptersHeading: 'Chapters',
-    backMatterHeading: 'Back Matter',
+    sectionsToSkip: ['Related', 'References'],
     includeTocByDefault: true,
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,

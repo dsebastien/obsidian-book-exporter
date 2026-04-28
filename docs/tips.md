@@ -8,15 +8,17 @@ nav_order: 90
 ## Authoring
 
 - **One file per chapter, one file per section.** That's the whole point — keep your atomic-note discipline; the manifest decides the order.
-- **Don't title chapters with `# H1`.** The plugin synthesizes the chapter title from the manifest's wikilink (or its alias). A leading `# H1` in the chapter file gets dropped automatically; subsequent headings are demoted to fit. Either is fine — but knowing this avoids surprises.
-- **Use aliased wikilinks to override printed chapter titles.** `[[Chapter 1 - The Problem|The Problem]]` keeps your atomic-note name precise while showing a cleaner title in the export.
+- **The manifest's heading hierarchy is yours.** Use H2 for chapters in a flat book, or H2 for parts + H3 for chapters in a structured one. The plugin parses whatever you write and demotes inlined notes to fit underneath.
+- **Don't title chapters with `# H1`.** The section title in the manifest is authoritative. A leading `# H1` in the inlined note is dropped automatically; subsequent headings are demoted. Either is fine — knowing this avoids surprises.
+- **Multiple wikilinks per bullet are allowed.** `- [[Note A]] [[Note B]]` inlines both, in order, under the current section. Useful for grouping a small number of related notes.
+- **Use the `sections_to_skip` config** (`Related`, `References` by default) so housekeeping sections in your atomic notes don't appear in the published book.
 - **Cover images live in the vault.** Set `cover: covers/my-book.jpg` in the manifest frontmatter (vault-relative) or use an absolute path.
 
 ## Validating before exporting
 
 Run **Validate current book** before every long export. It catches:
 
-- Missing `Chapters` section.
+- No sections in the manifest body.
 - Bullets pointing to wikilinks that don't resolve.
 - Missing required metadata.
 

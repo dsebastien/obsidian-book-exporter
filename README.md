@@ -6,8 +6,16 @@ Write a book inside an Obsidian vault — one **manifest note** acts as the tabl
 
 ## How it works
 
-1. Open any Markdown note that you want to use as the book manifest. Put book metadata in the frontmatter, list chapters in the body — no specific tag, folder, or filename required.
+1. Open any Markdown note that you want to use as the book manifest. Put book metadata in the frontmatter, structure the body with headings and bulleted wikilinks — no specific tag, folder, or filename required.
 2. Run **Export current book to EPUB / PDF / all formats** from the command palette.
+
+### The manifest contract
+
+- `# H1` is the **book title** (or use `title:` in frontmatter — that wins).
+- Every `## H2` … `###### H6` is a **section** at that level. Sections nest by level.
+- Every bullet under a section that contains one or more `[[wikilinks]]` contributes those links — in source order — to the section. The linked notes are inlined at that point in the manuscript.
+- Bullets without wikilinks are ignored. Text around a wikilink is dropped (treated as author commentary).
+- The structure is yours: parts → chapters → scenes, or chapters → sections, or just a flat list of chapters. The plugin doesn't care.
 
 ### Example manifest
 
@@ -23,24 +31,42 @@ book_export:
   formats: [epub, pdf]
   pdf_engine: typst
   page_break_per_chapter: true
+  sections_to_skip: [Related, References]
 ---
 
 # The Context Layer
 
-## Front Matter
+## Foreword
 - [[Foreword]]
-- [[Preface]]
 
-## Chapters
-- [[Chapter 1 - The Problem]]
-  - [[Chapter 1 - Section 1 - Why Notes Fail]]
-  - [[Chapter 1 - Section 2 - The Cost]]
-- [[Chapter 2 - The Solution]]
+## Part I — The Problem
 
-## Back Matter
+### Chapter 1 — Why Notes Fail
+- [[Why Notes Fail]]
+- [[The Cost of Forgetting]]
+
+### Chapter 2 — The Cost
+- [[The Cost]]
+
+## Part II — The Solution
+
+### Chapter 3 — Building Context
+- [[Building Context]]
+
+## Acknowledgements
 - [[Acknowledgements]]
 - [[About the Author]]
 ```
+
+### What gets cleaned up
+
+When a linked note is inlined, the plugin:
+
+- Strips its frontmatter.
+- Removes configurable sections (default: `Related`, `References`) — case-insensitive heading match, fence-aware.
+- Drops the note's first `# H1` (the section title in the manifest is authoritative).
+- Demotes remaining headings so they nest under the manifest section (offset = `parentLevel - 1`, capped at H6).
+- Rewrites Obsidian-only syntax: callouts → fenced divs, `![[image]]` → standard Markdown images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped.
 
 ## Commands
 

@@ -42,37 +42,42 @@ book_export:
   include_toc: true
   page_break_per_chapter: true
   formats: [epub, pdf]
+  sections_to_skip: [Related, References]
   pandoc_extra_args: ["--top-level-division=chapter"]
 ```
 
 ### Body (manuscript structure)
 
-Three top-level sections, parsed in this exact order regardless of what comes between them:
+The body is a heading tree. The plugin walks it and emits the manuscript in source order. There are no reserved heading names — the structure is yours.
 
 ```markdown
-## Front Matter
+# The Context Layer        ← optional body title (frontmatter `title` wins)
+
+## Foreword
 - [[Foreword]]
-- [[Preface]]
 
-## Chapters
-- [[Chapter 1 - The Problem]]
-  - [[Chapter 1.1 - Why Notes Fail]]
-  - [[Chapter 1.2 - The Cost]]
-- [[Chapter 2 - The Solution]]
+## Part I — The Problem
+### Chapter 1 — Why Notes Fail
+- [[Why Notes Fail]]
+- [[The Cost of Forgetting]]
 
-## Back Matter
+## Part II — The Solution
+### Chapter 3 — Building Context
+- [[Building Context]]
+
+## Acknowledgements
 - [[Acknowledgements]]
 - [[About the Author]]
 ```
 
 Rules:
 
-- Heading names are configurable (default: `Front Matter`, `Chapters`, `Back Matter`).
-- Each top-level bullet under `Chapters` is a chapter. Nested bullets are sections of that chapter.
-- Each bullet must contain exactly one `[[wikilink]]`. Anything else is ignored.
-- Order of bullets is preserved.
-- `Front Matter` and `Back Matter` are optional. `Chapters` is required.
-- Anything else in the book note (intro paragraphs, references, notes) is ignored by the exporter.
+- The first `# H1` (if any) sets the body title. Frontmatter `title` wins if both are present. The basename is the last fallback.
+- Every `## H2` … `###### H6` is a section at the matching level. Sections nest under the previous higher-level section.
+- Every bullet under a section that contains one or more `[[wikilinks]]` contributes them — in source order — to the section's note list. Bullets without wikilinks are ignored. Text around a wikilink is dropped (treated as commentary).
+- Bullets that appear before any `## H2` are ignored (no enclosing section).
+- Code fences are skipped during parsing.
+- Aliased wikilinks (`[[Note|Display]]`) override the linked note's basename when used as a display title.
 
 ## Compilation pipeline
 
@@ -90,9 +95,13 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
 
 ### ManuscriptCompiler responsibilities
 
-- Strip every chapter's YAML frontmatter.
-- Normalize headings: a chapter note's first H1 (if any) is dropped; all remaining headings are demoted by 1 (H2→H3, etc.) so that the chapter title (synthesized from the wikilink) becomes the H1. For sections nested under chapters: H1 dropped, headings demoted by 2.
-- Insert a hard page break (`\newpage` for LaTeX, `<div style="page-break-before: always"></div>` for HTML/EPUB) between chapters when `page_break_per_chapter` is true.
+- Walk the `BookSection` tree from the manifest. For each section, emit a heading at its level, then inline its linked notes in order, then recurse into its children.
+- For each inlined note:
+  - Strip its YAML frontmatter.
+  - Drop configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
+  - Drop the note's first `# H1` (the manifest section title is authoritative).
+  - Demote remaining headings to fit underneath the parent section: offset = `parentLevel - 1`, capped at H6.
+- Insert a hard page break (`\newpage`) before each top-level section after the first when `page_break_per_chapter` is true. "Top-level" = the lowest-numbered heading level present in the manifest.
 - Transform Obsidian-specific syntax:
   - `[[Note]]` and `[[Note|Alias]]` → resolve via `MetadataCache.getFirstLinkpathDest`. If target is itself part of the manuscript: render as plain text (the alias or basename) — internal links in print don't make sense. If external: render as Markdown link to the note's file path (informational).
   - `![[image.png]]` → standard Markdown image; image path resolved against vault.
@@ -135,12 +144,10 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 | `defaultOutputDir` | `Exports/Books` | Vault-relative. |
 | `defaultPdfEngine` | `typst` | typst / weasyprint / xelatex / tectonic / wkhtmltopdf |
 | `defaultLanguage` | `en` | Used when book note doesn't set one. |
-| `frontMatterHeading` | `Front Matter` | Body heading for front matter. |
-| `chaptersHeading` | `Chapters` | Body heading for chapters. |
-| `backMatterHeading` | `Back Matter` | Body heading for back matter. |
+| `sectionsToSkip` | `[Related, References]` | Heading names (case-insensitive) stripped from each linked note before inlining. |
 | `includeTocByDefault` | `true` | |
 | `tocDepthDefault` | `2` | |
-| `pageBreakPerChapterDefault` | `true` | |
+| `pageBreakPerChapterDefault` | `true` | Page break before each top-level section (lowest-numbered heading level used). |
 | `defaultFormats` | `[epub, pdf]` | Used by the "all formats" command. |
 | `keepTempFiles` | `false` | If true, don't clean tmp dir after export — useful for debugging. |
 | `debug` | `false` | Verbose logging. |
@@ -150,12 +157,14 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 Run by `validate-book` and as a pre-flight before any export. All are blocking unless noted.
 
 1. Active note must be a Markdown file. Any other file type is rejected.
-2. `title` and `authors` must be present (warning if missing — fall back to basename / `Anonymous`).
-3. The `Chapters` heading must exist and contain at least one bullet with a wikilink.
-4. Every bullet under each tracked heading must have exactly one wikilink that resolves to an existing note.
-5. `cover` (if set) must resolve to an existing image inside or outside the vault.
-6. `pandoc` must be reachable. (Resolved at command time, not parse time.)
-7. Cycle detection in note embeds (`![[Note]]`).
+2. `title` must be present (warning if missing — fall back to body H1, then basename).
+3. `authors` should be present (warning if missing — falls back to `Anonymous`).
+4. The manifest must contain at least one `## H2` (or deeper) section.
+5. The manifest must contain at least one resolved wikilink — sections without notes are allowed but a manifest with zero notes overall is rejected.
+6. Every wikilink in the manifest must resolve to an existing note.
+7. `cover` (if set) must resolve to an existing image inside or outside the vault.
+8. `pandoc` must be reachable. (Resolved at command time, not parse time.)
+9. Cycle detection in note embeds (`![[Note]]`).
 
 ## Architecture
 
@@ -165,7 +174,7 @@ src/
 └── app/
     ├── plugin.ts                            # BookExporterPlugin
     ├── domain/
-    │   ├── book-manifest.intf.ts            # BookManifest, BookEntry, ParsedBook
+    │   ├── book-manifest.intf.ts            # BookMetadata, BookSection, NoteReference, ParsedBook, BookExportOverrides
     │   └── export-options.intf.ts           # ExportFormat, ExportRequest, ExportResult
     ├── services/
     │   ├── book-parser.ts                   # Markdown → ParsedBook
