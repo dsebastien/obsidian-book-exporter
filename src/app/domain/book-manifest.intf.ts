@@ -62,13 +62,20 @@ export interface NoteReference {
 }
 
 /**
- * A heading in the manifest body. Holds the notes referenced by bullets
- * directly under it (in source order) and the nested sub-sections.
+ * A heading in the manifest body. Holds:
+ * - the prose written directly under the heading (any non-heading line that
+ *   isn't a bullet containing a wikilink — paragraphs, plain bullets,
+ *   tables, code fences, blockquotes...). Preserved verbatim and emitted
+ *   between the section's heading and its referenced notes.
+ * - the notes referenced by bulleted wikilinks under this heading, in
+ *   source order. Their content is inlined after the prose.
+ * - the nested sub-sections.
  */
 export interface BookSection {
     /** Heading level (2..6). */
     level: number
     title: string
+    prose: string
     notes: NoteReference[]
     children: BookSection[]
 }

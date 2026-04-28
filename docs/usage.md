@@ -53,8 +53,9 @@ book_export:
 - `# H1` is the book title. The frontmatter `title` wins if both are present. The basename is the last fallback.
 - Every `## H2` … `###### H6` becomes a **section** at the matching level. Sections nest under the previous higher-level section.
 - Every bullet under a section that contains one or more `[[wikilinks]]` adds those links — in source order — to the section's note list.
-- Bullets without wikilinks are ignored. Text around a wikilink is treated as commentary and dropped.
-- Code fences are skipped during parsing.
+- Bullets that contain no wikilinks are treated as prose. Text around a wikilink in a wikilink-bearing bullet is commentary and dropped.
+- **Other content under a section (paragraphs, plain bullets, tables, blockquotes, code fences) is kept verbatim** and emitted between the section heading and its inlined notes. Useful for sections that don't link out — `## Acknowledgments` followed by a thank-you paragraph just works.
+- Code fences are passed through unchanged.
 - The structure is yours. Parts/chapters, chapters/sections, just chapters — anything as long as the heading hierarchy is consistent.
 
 ### Frontmatter metadata
@@ -95,5 +96,8 @@ book_export:
    - Demotes remaining headings to fit beneath the current manifest section (offset = `parentLevel - 1`, capped at H6).
    - Rewrites Obsidian-only syntax: callouts → fenced divs, image embeds (`![[…]]`) → standard Markdown images, note references (`[[Note]]`) → display text, `%% comments %%` stripped.
 4. Copies referenced images into a `_resources/` folder next to the manuscript.
-5. Inserts a hard page break before each top-level section if **page break per chapter** is enabled. "Top-level" = the lowest-numbered heading level used in the manifest (so it works whether you start at H2 or use H2 for parts and H3 for chapters).
-6. Hands the result to Pandoc with a generated YAML metadata file (avoids escaping issues with non-ASCII titles).
+5. Inserts page breaks when **page break per chapter** is enabled:
+   - Each chapter starts on a new page (`\newpage`).
+   - When the manifest uses two heading levels (e.g. H2 = parts, H3 = chapters), each new part starts on a fresh **right-hand (recto) page** — leaving the verso blank when needed. Implemented via format-conditional raw blocks: Typst `pagebreak(to: "odd")`, LaTeX `\cleardoublepage`, EPUB CSS `page-break-before: always`.
+6. Injects a small Typst preamble that styles block quotes (left rule, italicized body) so quotes render cleanly in PDF without LaTeX. Pandoc's `+smart` reader extension also turns straight quotes into curly quotes throughout.
+7. Hands the result to Pandoc with a generated YAML metadata file (avoids escaping issues with non-ASCII titles).

@@ -44,7 +44,7 @@ export class PandocRunner {
             outputPath,
             '--metadata-file',
             compiled.metadataPath,
-            '--from=markdown+yaml_metadata_block+pipe_tables+task_lists+strikeout+fenced_divs',
+            '--from=markdown+yaml_metadata_block+pipe_tables+task_lists+strikeout+fenced_divs+smart',
             '--top-level-division=chapter',
             '--standalone',
             '--resource-path',

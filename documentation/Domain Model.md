@@ -6,12 +6,12 @@
 - **BookMetadata** — title, authors, language, optional ISBN/publisher/cover/description/etc. Title resolution: frontmatter `title` → body `# H1` (with trailing ` (Book)` stripped) → manifest basename (with trailing ` (Book)` stripped). Authors resolution: frontmatter `authors:` → plugin `defaultAuthors` setting → `["Anonymous"]`.
 - **BookExportOverrides** — per-book overrides (`output_dir`, `pdf_engine`, `toc_depth`, `include_toc`, `page_break_per_chapter`, `formats`, `pandoc_extra_args`, `sections_to_skip`).
 - **NoteReference** — one wikilink resolved against the vault: `filePath` (vault-relative path of the target note) and `displayTitle` (alias if any, otherwise the target's basename).
-- **BookSection** — one heading-driven node of the structure tree: `level` (2..6), `title`, ordered list of `notes` (`NoteReference[]`), and `children` (`BookSection[]`).
+- **BookSection** — one heading-driven node of the structure tree: `level` (2..6), `title`, `prose` (verbatim Markdown written directly under the heading — paragraphs, plain bullets, tables, blockquotes, code fences), ordered list of `notes` (`NoteReference[]`), and `children` (`BookSection[]`).
 - **ParsedBook** — `bookNotePath`, `metadata`, `overrides`, and `sections` (the top-level `BookSection[]`).
 
 ## Body layout
 
-The structure is a heading tree. Any heading from `## H2` to `###### H6` is a section node at the matching level. Sections nest under the most recent higher-level section. Bullets under a section that contain wikilinks contribute those wikilinks (in source order) to the section's note list.
+The structure is a heading tree. Any heading from `## H2` to `###### H6` is a section node at the matching level. Sections nest under the most recent higher-level section. Bullets under a section that contain wikilinks contribute those wikilinks (in source order) to the section's note list. Anything else under a section (paragraphs, plain bullets, tables, blockquotes, code fences) is captured as that section's `prose` and emitted verbatim between the heading and the inlined notes.
 
 ```
 # The Context Layer        ← optional body title (or use frontmatter `title`)
@@ -38,7 +38,8 @@ The structure is a heading tree. Any heading from `## H2` to `###### H6` is a se
 Rules:
 
 - The first `# H1` (if any) sets the body title and is otherwise ignored. The frontmatter `title` wins if both are present.
-- Each bullet may contain zero or more `[[wikilinks]]`. Bullets with zero wikilinks are ignored. Bullets with one or more wikilinks contribute them in source order to the current section.
+- Each bullet may contain zero or more `[[wikilinks]]`. Bullets with zero wikilinks are kept as prose (they may still be meaningful list items). Bullets with one or more wikilinks contribute them in source order to the current section's note list.
+- Non-bullet, non-heading lines under a section (paragraphs, tables, blockquotes, code fences) accumulate as the section's `prose`.
 - Aliased wikilinks (`[[Note|Display]]`) override the linked note's basename in the inlined display title.
 - Indent depth is **not** semantic at parse time — heading level is the only nesting signal. Bullets always attach to the most recently opened section.
 - Code fences are skipped during parsing.
@@ -51,6 +52,8 @@ The same `sectionsToSkip` list (default: `Related`, `References`, `Title Options
 - **At parse time, on the manifest body.** Any matching top-level heading and its body are removed before the heading tree is built. This lets you keep authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) inside the manifest without it leaking into the export.
 - **At compile time, on each linked note.** Same logic, applied per inlined note so housekeeping sections like `## Related` and `## References` from atomic notes stay out of the book.
 
+For each section, the manuscript emits, in order: the heading at the section's level, the section's `prose` (verbatim), then each inlined note, then the section's children. Empty `prose` and an empty `notes` list collapse cleanly — a heading-only section renders just its heading and nested children.
+
 When a `NoteReference` is inlined into the manuscript:
 
 1. The note's frontmatter is stripped.
@@ -61,7 +64,24 @@ When a `NoteReference` is inlined into the manuscript:
 
 ## Page breaks
 
-If `page_break_per_chapter` is true, a hard page break (`\newpage`) is inserted before each top-level section after the first. "Top-level" = the lowest-numbered heading level present in the manifest. So a book that uses H2 for parts and H3 for chapters page-breaks per part; a book that uses only H2 page-breaks per H2.
+If `page_break_per_chapter` is true, the compiler emits two kinds of breaks:
+
+- **Chapter break** — a hard `\newpage` before each chapter after the first. Covers the common case (every chapter starts on a new page).
+- **Part break** — a format-conditional block before each part after the first that forces the next part to start on a fresh **right-hand (recto) page**, leaving the verso blank when needed. Three raw blocks are emitted so each pandoc target picks the right one:
+  - `{=typst}` → `pagebreak(to: "odd")`
+  - `{=latex}` → `\cleardoublepage`
+  - `{=html}` → `<div style="page-break-before: always"></div>`
+
+The compiler decides which break to use based on the manifest's heading levels:
+
+- `partLevel` = the **lowest-numbered** heading level present (i.e. the outermost level — typically H2).
+- `chapterLevel` = the next deeper level after `partLevel`, or `partLevel` itself when the manifest is flat (only one level used).
+- If `partLevel === chapterLevel`, every top-level section gets a chapter break — no part breaks. This handles flat manifests (`## Chapter 1`, `## Chapter 2`, …).
+- If `partLevel !== chapterLevel`, sibling parts get part breaks; the first chapter inside a part follows the part's heading without a break, and subsequent siblings inside the same part get chapter breaks.
+
+## Quote rendering
+
+The compiler injects a small Typst preamble (`#show quote.where(block: true): …`) at the top of the manuscript. It styles block quotes with a subtle left rule and italicized body, producing readable quotes in PDF output without requiring LaTeX or a custom Pandoc template. Pandoc is also called with `+smart` so straight quotes render as proper curly typographic quotes.
 
 ## Outputs
 

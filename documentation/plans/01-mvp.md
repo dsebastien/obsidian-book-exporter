@@ -74,7 +74,8 @@ Rules:
 
 - The first `# H1` (if any) sets the body title. Frontmatter `title` wins if both are present. The basename is the last fallback.
 - Every `## H2` … `###### H6` is a section at the matching level. Sections nest under the previous higher-level section.
-- Every bullet under a section that contains one or more `[[wikilinks]]` contributes them — in source order — to the section's note list. Bullets without wikilinks are ignored. Text around a wikilink is dropped (treated as commentary).
+- Every bullet under a section that contains one or more `[[wikilinks]]` contributes them — in source order — to the section's note list. Bullets without wikilinks are kept as part of the section's prose. Text around a wikilink in a wikilink-bearing bullet is dropped (treated as commentary).
+- Anything else under a section (paragraphs, tables, blockquotes, code fences, plain bullets) is captured as the section's `prose` and emitted verbatim between the heading and its inlined notes. Lets sections like `## Acknowledgments` carry text without needing wikilinks.
 - Bullets that appear before any `## H2` are ignored (no enclosing section).
 - Code fences are skipped during parsing.
 - Aliased wikilinks (`[[Note|Display]]`) override the linked note's basename when used as a display title.
@@ -95,13 +96,17 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
 
 ### ManuscriptCompiler responsibilities
 
-- Walk the `BookSection` tree from the manifest. For each section, emit a heading at its level, then inline its linked notes in order, then recurse into its children.
+- Walk the `BookSection` tree from the manifest. For each section, emit a heading at its level, then the section's `prose` verbatim (paragraphs, plain bullets, tables, blockquotes, code fences kept as-is), then inline its linked notes in order, then recurse into its children.
+- Inject a small Typst preamble at the top of the manuscript (raw `{=typst}` block) that styles block quotes (left rule, italicized body) so PDF quotes render cleanly without LaTeX.
 - For each inlined note:
   - Strip its YAML frontmatter.
   - Drop configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
   - Drop the note's first `# H1` (the manifest section title is authoritative).
   - Demote remaining headings to fit underneath the parent section: offset = `parentLevel - 1`, capped at H6.
-- Insert a hard page break (`\newpage`) before each top-level section after the first when `page_break_per_chapter` is true. "Top-level" = the lowest-numbered heading level present in the manifest.
+- Page breaks (when `page_break_per_chapter` is true):
+  - **Chapter break** — `\newpage` before each chapter after the first.
+  - **Part break** — format-conditional raw blocks (`pagebreak(to: "odd")` for Typst, `\cleardoublepage` for LaTeX, CSS `page-break-before: always` for EPUB) before each part after the first, forcing parts to start on a fresh recto page in print.
+  - Decision rule: `partLevel` = lowest-numbered heading level present; `chapterLevel` = the next deeper level (or `partLevel` itself for flat manifests). When `partLevel === chapterLevel` (flat manifest), every top section gets a chapter break. When they differ, siblings at `partLevel` get part breaks; the first child at `chapterLevel` inside a part has no break, subsequent siblings get chapter breaks.
 - Transform Obsidian-specific syntax:
   - `[[Note]]` and `[[Note|Alias]]` → resolve via `MetadataCache.getFirstLinkpathDest`. If target is itself part of the manuscript: render as plain text (the alias or basename) — internal links in print don't make sense. If external: render as Markdown link to the note's file path (informational).
   - `![[image.png]]` → standard Markdown image; image path resolved against vault.
@@ -122,6 +127,7 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
 Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 
 - `pandoc <manuscript.md> -o <out.epub> --metadata-file <meta.yaml> --epub-cover-image <cover> --toc --toc-depth=N --top-level-division=chapter [extras]`
+- The reader format is `markdown+yaml_metadata_block+pipe_tables+task_lists+strikeout+fenced_divs+smart` — `+smart` turns straight quotes into proper curly typographic quotes.
 - For PDF: `-o <out.pdf> --pdf-engine=<engine>`. Engine is configurable globally + per book; default is `typst`.
 - Resolves binary path: per-book setting > plugin setting > `pandoc` (rely on PATH).
 - Writes the metadata-file YAML from `BookManifest` so we don't fight pandoc's CLI metadata parsing.

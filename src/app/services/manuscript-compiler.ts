@@ -35,24 +35,35 @@ export class ManuscriptCompiler {
 
         const sectionsToSkip = book.overrides.sectionsToSkip ?? this.settings.sectionsToSkip
         const transformer = new BodyTransformer(this.app, resourcesDir)
-        const pageBreak =
+        const pageBreakEnabled =
             book.overrides.pageBreakPerChapter ?? this.settings.pageBreakPerChapterDefault
-        const breakLevel = lowestSectionLevel(book.sections)
+        const levels = collectLevels(book.sections)
+        const partLevel = levels.length > 0 ? Math.min(...levels) : Number.MAX_SAFE_INTEGER
+        const chapterLevel = pickChapterLevel(levels, partLevel)
 
         const parts: string[] = []
+        parts.push(TYPST_PREAMBLE)
+        parts.push('')
         parts.push(`# ${book.metadata.title}`)
         parts.push('')
 
-        let isFirstTopLevel = true
+        let isFirstAtPartLevel = true
         for (const section of book.sections) {
+            let breakKind: PageBreak = 'none'
+            if (pageBreakEnabled && !isFirstAtPartLevel) {
+                breakKind = partLevel === chapterLevel ? 'chapter' : 'part'
+            }
+            isFirstAtPartLevel = false
             const rendered = await this.renderSection(
                 section,
                 transformer,
                 sectionsToSkip,
-                pageBreak && breakLevel !== null && section.level === breakLevel && !isFirstTopLevel
+                breakKind,
+                pageBreakEnabled,
+                partLevel,
+                chapterLevel
             )
             parts.push(rendered)
-            isFirstTopLevel = false
         }
 
         const manuscriptPath = path.join(tempDir, 'manuscript.md')
@@ -68,12 +79,21 @@ export class ManuscriptCompiler {
         section: BookSection,
         transformer: BodyTransformer,
         sectionsToSkip: string[],
-        prependPageBreak: boolean
+        prependPageBreak: PageBreak,
+        pageBreakEnabled: boolean,
+        partLevel: number,
+        chapterLevel: number
     ): Promise<string> {
         const out: string[] = []
-        if (prependPageBreak) out.push(PAGE_BREAK)
+        if (prependPageBreak === 'part') out.push(PAGE_BREAK_PART)
+        else if (prependPageBreak === 'chapter') out.push(PAGE_BREAK_CHAPTER)
         out.push(`${'#'.repeat(section.level)} ${section.title}`)
         out.push('')
+
+        if (section.prose.length > 0) {
+            out.push(section.prose)
+            out.push('')
+        }
 
         for (const ref of section.notes) {
             const inlined = await this.inlineNote(ref, section.level, transformer, sectionsToSkip)
@@ -83,8 +103,30 @@ export class ManuscriptCompiler {
             }
         }
 
+        // Each child gets a chapter break unless it is the first chapter under
+        // a part (the part break already started a fresh page) or this section
+        // is not at the part level.
+        let isFirstChapterChild = true
         for (const child of section.children) {
-            const rendered = await this.renderSection(child, transformer, sectionsToSkip, false)
+            let childBreak: PageBreak = 'none'
+            if (
+                pageBreakEnabled &&
+                child.level === chapterLevel &&
+                section.level === partLevel &&
+                partLevel !== chapterLevel
+            ) {
+                childBreak = isFirstChapterChild ? 'none' : 'chapter'
+                isFirstChapterChild = false
+            }
+            const rendered = await this.renderSection(
+                child,
+                transformer,
+                sectionsToSkip,
+                childBreak,
+                pageBreakEnabled,
+                partLevel,
+                chapterLevel
+            )
             out.push(rendered)
         }
 
@@ -120,15 +162,84 @@ export class ManuscriptCompiler {
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-const PAGE_BREAK = '\n\\newpage\n'
+type PageBreak = 'none' | 'chapter' | 'part'
+
+/**
+ * Typst-only styling injected at the top of the manuscript so blockquotes
+ * read like book pull-quotes instead of stock indented paragraphs:
+ * - left rule, slight grey
+ * - extra inset
+ * - italic body
+ * - subtle attribution treatment
+ *
+ * Pandoc emits the raw block only when the typst writer is selected; LaTeX
+ * and HTML/EPUB ignore it. EPUB blockquote styling is handled by the
+ * reader's CSS (out of scope for this plugin).
+ */
+const TYPST_PREAMBLE = [
+    '```{=typst}',
+    '#show quote.where(block: true): set block(spacing: 1.4em)',
+    '#show quote.where(block: true): it => block(',
+    '  inset: (left: 1.2em, right: 0.2em, top: 0.4em, bottom: 0.4em),',
+    '  stroke: (left: 2pt + luma(70%)),',
+    '  emph(it.body),',
+    ')',
+    '```'
+].join('\n')
+
+/**
+ * Hard page break before a chapter. `\newpage` is recognised by Pandoc's
+ * typst writer (→ `pagebreak()`) and LaTeX writer (→ `\newpage`); HTML/EPUB
+ * ignore it (no fixed pagination).
+ */
+const PAGE_BREAK_CHAPTER = '\n\n\\newpage\n\n'
+
+/**
+ * Page break + blank-page-on-recto before a part. Format-conditional raw
+ * blocks: typst gets `pagebreak(to: "odd")`, LaTeX gets `\cleardoublepage`,
+ * HTML gets a `page-break-before: always` div. Pandoc emits only the block
+ * matching the active output format.
+ */
+const PAGE_BREAK_PART = [
+    '',
+    '```{=typst}',
+    'pagebreak(to: "odd")',
+    '```',
+    '',
+    '```{=latex}',
+    '\\cleardoublepage',
+    '```',
+    '',
+    '```{=html}',
+    '<div style="page-break-before: always"></div>',
+    '```',
+    ''
+].join('\n')
+
 const FENCE_RE = /^\s*(```|~~~)/
 
-function lowestSectionLevel(sections: BookSection[]): number | null {
-    let lowest: number | null = null
-    for (const section of sections) {
-        if (lowest === null || section.level < lowest) lowest = section.level
+function collectLevels(sections: BookSection[]): number[] {
+    const levels = new Set<number>()
+    const walk = (list: BookSection[]): void => {
+        for (const s of list) {
+            levels.add(s.level)
+            walk(s.children)
+        }
     }
-    return lowest
+    walk(sections)
+    return [...levels]
+}
+
+/**
+ * Picks the level treated as a "chapter" for page-break purposes. If the
+ * manifest uses a single heading level, parts and chapters collapse onto
+ * the same level (flat book). Otherwise the chapter level is the next
+ * heading depth after parts.
+ */
+function pickChapterLevel(levels: number[], partLevel: number): number {
+    const deeper = levels.filter((l) => l > partLevel)
+    if (deeper.length === 0) return partLevel
+    return Math.min(...deeper)
 }
 
 function dropFirstH1(content: string): string {

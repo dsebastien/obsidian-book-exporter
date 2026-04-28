@@ -63,17 +63,33 @@ export class BookParser {
         source: TFile
     ): { sections: BookSection[]; bodyTitle: string | undefined } {
         const lines = body.split(/\r?\n/)
-        const root: BookSection = { level: 1, title: '', notes: [], children: [] }
+        const root: BookSection = {
+            level: 1,
+            title: '',
+            prose: '',
+            notes: [],
+            children: []
+        }
         const stack: BookSection[] = [root]
         let bodyTitle: string | undefined
         let inFence = false
+        const proseBuffers = new Map<BookSection, string[]>()
+        const appendProse = (section: BookSection, line: string): void => {
+            const buf = proseBuffers.get(section) ?? []
+            buf.push(line)
+            proseBuffers.set(section, buf)
+        }
 
         for (const line of lines) {
             if (FENCE_RE.test(line)) {
                 inFence = !inFence
+                if (stack.length > 1) appendProse(stack[stack.length - 1]!, line)
                 continue
             }
-            if (inFence) continue
+            if (inFence) {
+                if (stack.length > 1) appendProse(stack[stack.length - 1]!, line)
+                continue
+            }
 
             const heading = matchHeading(line)
             if (heading !== null) {
@@ -90,6 +106,7 @@ export class BookParser {
                 const section: BookSection = {
                     level: heading.level,
                     title: heading.text.trim(),
+                    prose: '',
                     notes: [],
                     children: []
                 }
@@ -99,15 +116,26 @@ export class BookParser {
             }
 
             const bullet = matchBullet(line)
-            if (bullet === null) continue
-            if (stack.length === 1) continue
-
-            const links = matchAllWikilinks(bullet.text)
-            if (links.length === 0) continue
-            const current = stack[stack.length - 1]!
-            for (const link of links) {
-                current.notes.push(this.resolveLink(link, source))
+            if (bullet !== null && stack.length > 1) {
+                const links = matchAllWikilinks(bullet.text)
+                if (links.length > 0) {
+                    const current = stack[stack.length - 1]!
+                    for (const link of links) {
+                        current.notes.push(this.resolveLink(link, source))
+                    }
+                    continue
+                }
             }
+
+            // Anything else under a section becomes prose: paragraphs, plain
+            // bullets, tables, blockquotes, ... — kept verbatim.
+            if (stack.length > 1) {
+                appendProse(stack[stack.length - 1]!, line)
+            }
+        }
+
+        for (const [section, buf] of proseBuffers) {
+            section.prose = trimBlankLines(buf).join('\n')
         }
 
         return { sections: root.children, bodyTitle }
@@ -316,4 +344,12 @@ function isPdfEngine(v: string): v is PdfEngine {
 
 function isExportFormat(v: string): v is ExportFormat {
     return v === 'epub' || v === 'pdf'
+}
+
+function trimBlankLines(lines: string[]): string[] {
+    let start = 0
+    let end = lines.length
+    while (start < end && lines[start]!.trim().length === 0) start += 1
+    while (end > start && lines[end - 1]!.trim().length === 0) end -= 1
+    return lines.slice(start, end)
 }
