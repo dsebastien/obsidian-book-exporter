@@ -95,7 +95,7 @@ export class ManuscriptCompiler {
         out.push('')
 
         if (section.prose.length > 0) {
-            out.push(convertThematicBreaksToPageBreaks(section.prose))
+            out.push(convertThematicBreaksToPageBreaks(section.prose, PAGE_BREAK_CHAPTER))
             out.push('')
         }
 
@@ -158,7 +158,7 @@ export class ManuscriptCompiler {
         const withoutSkipped = stripSkippedSections(body, sectionsToSkip)
         const headerless = dropFirstH1(withoutSkipped)
         const demoted = demoteHeadings(headerless, parentLevel)
-        const pageBroken = convertThematicBreaksToPageBreaks(demoted)
+        const pageBroken = convertThematicBreaksToPageBreaks(demoted, PAGE_BREAK_CHAPTER)
         return transformer.transform(pageBroken, file)
     }
 }
@@ -193,11 +193,25 @@ const TYPST_PREAMBLE = [
 ].join('\n')
 
 /**
- * Hard page break before a chapter. `\newpage` is recognised by Pandoc's
- * typst writer (→ `pagebreak()`) and LaTeX writer (→ `\newpage`); HTML/EPUB
- * ignore it (no fixed pagination).
+ * Hard page break before a chapter. Format-conditional raw blocks because
+ * Pandoc's typst writer does NOT translate raw LaTeX `\newpage`; it has to
+ * see a `{=typst}` block to emit a page break in the PDF.
  */
-const PAGE_BREAK_CHAPTER = '\n\n\\newpage\n\n'
+const PAGE_BREAK_CHAPTER = [
+    '',
+    '```{=typst}',
+    '#pagebreak()',
+    '```',
+    '',
+    '```{=latex}',
+    '\\newpage',
+    '```',
+    '',
+    '```{=html}',
+    '<div style="page-break-before: always"></div>',
+    '```',
+    ''
+].join('\n')
 
 /**
  * Page break + blank-page-on-recto before a part. Format-conditional raw

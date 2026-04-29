@@ -69,25 +69,30 @@ export function stripSkippedSections(body: string, skip: string[]): string {
 const HR_RE = /^\s*-{3,}\s*$/
 
 /**
- * Converts standalone `---` (3+ dash) lines to a `\newpage` raw block —
- * Pandoc emits a real page break per format (`pagebreak()` in Typst,
- * `\newpage` in LaTeX, ignored in HTML/EPUB). Frontmatter must already be
- * stripped (the YAML delimiters use the same syntax). Code fences are
- * preserved.
+ * Converts standalone `---` (3+ dash) lines into the caller's `pageBreak`
+ * literal (a Pandoc raw block that produces a page break per output
+ * format). Frontmatter must already be stripped (the YAML delimiters use
+ * the same syntax). Code fences are preserved.
  */
-export function convertThematicBreaksToPageBreaks(body: string): string {
+export function convertThematicBreaksToPageBreaks(body: string, pageBreak: string): string {
     const lines = body.split(/\r?\n/)
     let inFence = false
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!
+    const out: string[] = []
+    for (const line of lines) {
         if (FENCE_RE.test(line)) {
             inFence = !inFence
+            out.push(line)
             continue
         }
-        if (inFence) continue
+        if (inFence) {
+            out.push(line)
+            continue
+        }
         if (HR_RE.test(line)) {
-            lines[i] = '\\newpage'
+            out.push(pageBreak)
+        } else {
+            out.push(line)
         }
     }
-    return lines.join('\n')
+    return out.join('\n')
 }
