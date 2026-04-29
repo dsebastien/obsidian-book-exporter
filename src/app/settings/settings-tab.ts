@@ -246,6 +246,22 @@ export class BookExporterSettingTab extends PluginSettingTab {
                     })
             )
 
+        new Setting(containerEl)
+            .setName('Typst image width')
+            .setDesc(
+                'Forwarded as `#set image(width: <value>)` in the Typst preamble — caps every image at this width when the PDF engine is Typst. Common values: `100%` (fit text width — default), `80%`, `15cm`. Leave empty to disable.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('100%')
+                    .setValue(this.plugin.settings.typstImageWidth)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.typstImageWidth = value.trim()
+                        })
+                    })
+            )
+
         new Setting(containerEl).setName('Include TOC by default').addToggle((t) =>
             t.setValue(this.plugin.settings.includeTocByDefault).onChange(async (value) => {
                 await this.plugin.updateSettings((draft) => {

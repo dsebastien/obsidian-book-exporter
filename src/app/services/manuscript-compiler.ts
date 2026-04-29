@@ -57,7 +57,7 @@ export class ManuscriptCompiler {
         const chapterLevel = pickChapterLevel(levels, partLevel)
 
         const parts: string[] = []
-        parts.push(TYPST_PREAMBLE)
+        parts.push(buildTypstPreamble(this.settings))
         parts.push('')
         parts.push(`# ${book.metadata.title}`)
         parts.push('')
@@ -222,26 +222,31 @@ function renderNoteSeparator(kind: InlinedNoteSeparator): string | null {
 
 /**
  * Typst-only styling injected at the top of the manuscript so blockquotes
- * read like book pull-quotes instead of stock indented paragraphs:
- * - left rule, slight grey
- * - extra inset
- * - italic body
- * - subtle attribution treatment
+ * read like book pull-quotes instead of stock indented paragraphs, and so
+ * images fit the configured page width:
+ * - left rule, slight grey on quotes
+ * - extra inset, italic body
+ * - `#set image(width: <typstImageWidth>)` when the setting is non-empty
  *
  * Pandoc emits the raw block only when the typst writer is selected; LaTeX
  * and HTML/EPUB ignore it. EPUB blockquote styling is handled by the
  * reader's CSS (out of scope for this plugin).
  */
-const TYPST_PREAMBLE = [
-    '```{=typst}',
-    '#show quote.where(block: true): set block(spacing: 1.4em)',
-    '#show quote.where(block: true): it => block(',
-    '  inset: (left: 1.2em, right: 0.2em, top: 0.4em, bottom: 0.4em),',
-    '  stroke: (left: 2pt + luma(70%)),',
-    '  emph(it.body),',
-    ')',
-    '```'
-].join('\n')
+function buildTypstPreamble(settings: PluginSettings): string {
+    const lines: string[] = ['```{=typst}']
+    const width = settings.typstImageWidth.trim()
+    if (width.length > 0) {
+        lines.push(`#set image(width: ${width})`)
+    }
+    lines.push('#show quote.where(block: true): set block(spacing: 1.4em)')
+    lines.push('#show quote.where(block: true): it => block(')
+    lines.push('  inset: (left: 1.2em, right: 0.2em, top: 0.4em, bottom: 0.4em),')
+    lines.push('  stroke: (left: 2pt + luma(70%)),')
+    lines.push('  emph(it.body),')
+    lines.push(')')
+    lines.push('```')
+    return lines.join('\n')
+}
 
 /**
  * Hard page break before a chapter. Format-conditional raw blocks because

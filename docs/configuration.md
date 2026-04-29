@@ -22,6 +22,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Inlined-note separator | enum | `none` | Visual cue between successive notes inside the same section. `none` keeps the legacy run-on layout; `rule` emits a centred `* * *` glyph rule; `blank` adds extra spacing; `subheading` renders each note's display title as a heading one level below the section heading. Per-book override: `book_export.inlined_note_separator`. |
 | Inline note embeds | boolean | false | When on, `![[Note]]` embeds inside inlined notes are recursively expanded with the embedded note's body. Default off — embeds are dropped (only image embeds are kept). |
 | Note embed max depth | integer | 3 | Maximum recursion depth for note-embed expansion. 1 = direct embeds only; 2 = embeds of embeds; etc. Embeds at the depth limit are replaced with their display title. |
+| Typst image width | string | `100%` | Forwarded as `#set image(width: <value>)` in the Typst preamble. Caps every image when the PDF engine is Typst. Accepts any Typst length (`100%`, `80%`, `15cm`). Leave empty to disable. |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | Auto TOC depth | boolean | true | When on, the TOC depth is derived from the deepest heading level actually present in the manifest (parts + chapters → 3, flat chapters → 2). Disable to use the static fallback. Per-book `book_export.toc_depth` always wins. |
 | TOC depth (fallback) | integer | 2 | `--toc-depth=N`. Used only when **Auto TOC depth** is off, or when the manifest has no parseable heading. |

@@ -41,6 +41,15 @@ export interface PluginSettings {
     defaultMonoFont: string
 
     /**
+     * Typst image-width directive. Forwarded as `#set image(width: <value>)`
+     * inside the Typst preamble injected at the top of the manuscript.
+     * Common values: `100%` (fit text width — default), `80%`, `15cm`. Empty
+     * disables the directive entirely (Typst's native auto-sizing applies).
+     * Only affects PDFs rendered through the Typst engine.
+     */
+    typstImageWidth: string
+
+    /**
      * Heading names (case-insensitive) to skip — applied both to the manifest
      * body before parsing (so authoring scaffolding like "Title Options" or
      * "Target Audience" never reaches the export) and to each linked note
@@ -106,6 +115,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     coverProperty: 'cover',
     defaultMainFont: 'Liberation Serif',
     defaultMonoFont: 'Liberation Mono',
+    typstImageWidth: '100%',
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     inlinedNoteSeparator: 'none',
     inlineNoteEmbeds: false,
