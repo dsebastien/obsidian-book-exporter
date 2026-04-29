@@ -67,6 +67,15 @@ export interface BookExportOverrides {
     sectionsToSkip?: string[]
     /** Per-book override for the visual separator between inlined notes. */
     inlinedNoteSeparator?: InlinedNoteSeparator
+    /**
+     * Top-level section titles (case-insensitive) treated as front matter.
+     * Front-matter pages are numbered with lowercase roman numerals (`i`,
+     * `ii`, ...); the first non-matching top-level section starts body
+     * matter and resets numbering to arabic (`1`, `2`, ...). Only emits
+     * meaningful raw blocks for Typst and LaTeX targets — HTML/EPUB
+     * ignore them. When undefined, the whole book is body matter.
+     */
+    frontMatterSections?: string[]
 }
 
 /**

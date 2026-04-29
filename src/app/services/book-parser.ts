@@ -307,6 +307,9 @@ function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {
     const sep = asString(r['inlined_note_separator'])
     if (sep !== undefined && isInlinedNoteSeparator(sep)) overrides.inlinedNoteSeparator = sep
 
+    const frontMatter = asStringList(r['front_matter_sections'])
+    if (frontMatter.length > 0) overrides.frontMatterSections = frontMatter
+
     return overrides
 }
 

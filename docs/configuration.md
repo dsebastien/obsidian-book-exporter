@@ -59,6 +59,7 @@ book_export:
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
 | `sections_to_skip` | list | Heading names (case-insensitive). Applied to both the manifest body and linked notes. Replaces — does not extend — the global setting. |
 | `inlined_note_separator` | enum | `none` / `rule` / `blank` / `subheading`. Overrides the plugin setting for this book. |
+| `front_matter_sections` | list | Top-level section titles (case-insensitive) treated as **front matter** — pages numbered with lowercase roman numerals (`i`, `ii`, ...). The first non-matching top-level section starts body matter and resets numbering to arabic (`1`, `2`, ...). Only meaningful for Typst and LaTeX targets. Example: `[Foreword, Preface, Acknowledgements]`. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
 
 ## Where files go

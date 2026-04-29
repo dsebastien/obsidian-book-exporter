@@ -56,19 +56,37 @@ export class ManuscriptCompiler {
         const partLevel = levels.length > 0 ? Math.min(...levels) : Number.MAX_SAFE_INTEGER
         const chapterLevel = pickChapterLevel(levels, partLevel)
 
+        const frontMatterTitles = normaliseTitles(book.overrides.frontMatterSections ?? [])
+        const hasFrontMatter = frontMatterTitles.size > 0
+
         const parts: string[] = []
         parts.push(buildTypstPreamble(this.settings))
         parts.push('')
+        if (hasFrontMatter) parts.push(FRONT_MATTER_OPEN)
         parts.push(`# ${book.metadata.title}`)
         parts.push('')
 
         let isFirstAtPartLevel = true
+        let bodyMatterStarted = !hasFrontMatter
         for (const section of book.sections) {
+            const isFront =
+                hasFrontMatter && frontMatterTitles.has(section.title.trim().toLowerCase())
             let breakKind: PageBreak = 'none'
             if (pageBreakEnabled && !isFirstAtPartLevel) {
                 breakKind = partLevel === chapterLevel ? 'chapter' : 'part'
             }
             isFirstAtPartLevel = false
+
+            // Insert the body-matter transition right before the first
+            // non-front-matter section. The transition includes its own
+            // page break, so we suppress the chapter/part break that
+            // would otherwise duplicate it.
+            if (!isFront && !bodyMatterStarted) {
+                parts.push(BODY_MATTER_OPEN)
+                bodyMatterStarted = true
+                breakKind = 'none'
+            }
+
             const rendered = await this.renderSection(
                 section,
                 transformer,
@@ -195,6 +213,49 @@ export class ManuscriptCompiler {
 /* ------------------------------------------------------------------ */
 
 type PageBreak = 'none' | 'chapter' | 'part'
+
+function normaliseTitles(titles: string[]): Set<string> {
+    return new Set(titles.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))
+}
+
+/**
+ * Raw blocks emitted at the very top of the manuscript when at least one
+ * top-level section is flagged as front matter. Switches the page numbering
+ * to lowercase roman for Typst, and uses pandoc's LaTeX `book` class
+ * `\frontmatter` directive (active when `--top-level-division=chapter`,
+ * which the runner always passes). HTML/EPUB ignore both.
+ */
+const FRONT_MATTER_OPEN = [
+    '',
+    '```{=typst}',
+    '#set page(numbering: "i")',
+    '```',
+    '',
+    '```{=latex}',
+    '\\frontmatter',
+    '```',
+    ''
+].join('\n')
+
+/**
+ * Raw blocks emitted right before the first body-matter section. Resets the
+ * Typst page counter to 1 and switches numbering back to arabic; for LaTeX,
+ * `\mainmatter` performs the same reset. Includes its own page break — the
+ * caller suppresses the surrounding chapter/part break to avoid duplicates.
+ */
+const BODY_MATTER_OPEN = [
+    '',
+    '```{=typst}',
+    '#pagebreak(to: "odd")',
+    '#counter(page).update(1)',
+    '#set page(numbering: "1")',
+    '```',
+    '',
+    '```{=latex}',
+    '\\mainmatter',
+    '```',
+    ''
+].join('\n')
 
 /**
  * Returns the string emitted between two successive inlined notes inside the
