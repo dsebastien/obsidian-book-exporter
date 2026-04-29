@@ -19,6 +19,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Default author(s) | comma list | (empty) | Used when the manifest doesn't define `authors:` in its frontmatter. Empty falls back to `Anonymous` (with a warning). |
 | Cover frontmatter property | string | `cover` | Frontmatter key read for the book cover image. Set this to `cover_image`, `cover_url`, or whatever name fits your frontmatter conventions. The value can be a vault-relative path, an absolute path, an `[[wikilink]]`, or an `http(s)` URL (downloaded to the temp folder before pandoc runs). |
 | Sections to skip | comma list | `Related, References, Title Options, Target Audience` | Heading names (case-insensitive). Applied to the manifest body before parsing (drops authoring scaffolding) AND to each linked note when inlining (drops housekeeping sections). |
+| Inlined-note separator | enum | `none` | Visual cue between successive notes inside the same section. `none` keeps the legacy run-on layout; `rule` emits a centred `* * *` glyph rule; `blank` adds extra spacing; `subheading` renders each note's display title as a heading one level below the section heading. Per-book override: `book_export.inlined_note_separator`. |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | TOC depth | integer | 2 | `--toc-depth=N`. |
 | Page break per chapter | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |
@@ -38,6 +39,7 @@ book_export:
   page_break_per_chapter: true
   formats: [epub, pdf]
   sections_to_skip: [Related, References, Notes]
+  inlined_note_separator: rule
   pandoc_extra_args:
     - --top-level-division=chapter
     - --resource-path=.
@@ -52,6 +54,7 @@ book_export:
 | `page_break_per_chapter` | boolean | Page-break behaviour for this book. |
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
 | `sections_to_skip` | list | Heading names (case-insensitive). Applied to both the manifest body and linked notes. Replaces — does not extend — the global setting. |
+| `inlined_note_separator` | enum | `none` / `rule` / `blank` / `subheading`. Overrides the plugin setting for this book. |
 | `pandoc_extra_args` | list of strings | Extra arguments forwarded to Pandoc verbatim. |
 
 ## Where files go

@@ -4,7 +4,7 @@
 
 - **BookManifest (manifest note)** — any Markdown note whose frontmatter holds book metadata and whose body uses headings + bulleted wikilinks to declare the book's structure. No tag, folder, or naming convention is required.
 - **BookMetadata** — title, authors, language, optional ISBN/publisher/cover/description/etc. Title resolution: frontmatter `title` → body `# H1` (with trailing ` (Book)` stripped) → manifest basename (with trailing ` (Book)` stripped). Authors resolution: frontmatter `authors:` → plugin `defaultAuthors` setting → `["Anonymous"]`. Cover resolution: the frontmatter key is configurable (plugin setting `coverProperty`, default `cover`); the value can be a vault-relative path, an `[[wikilink]]`, an absolute filesystem path, or an `http(s)` URL (downloaded by the exporter before pandoc runs and rewritten to a local temp path). `coverPath` always points to a local file by the time pandoc is invoked.
-- **BookExportOverrides** — per-book overrides (`output_dir`, `pdf_engine`, `toc_depth`, `include_toc`, `page_break_per_chapter`, `formats`, `pandoc_extra_args`, `sections_to_skip`).
+- **BookExportOverrides** — per-book overrides (`output_dir`, `pdf_engine`, `toc_depth`, `include_toc`, `page_break_per_chapter`, `formats`, `pandoc_extra_args`, `sections_to_skip`, `inlined_note_separator`).
 - **NoteReference** — one wikilink resolved against the vault: `filePath` (vault-relative path of the target note) and `displayTitle` (alias if any, otherwise the target's basename).
 - **BookSection** — one heading-driven node of the structure tree: `level` (2..6), `title`, `prose` (verbatim Markdown written directly under the heading — paragraphs, plain bullets, tables, blockquotes, code fences), ordered list of `notes` (`NoteReference[]`), and `children` (`BookSection[]`).
 - **ParsedBook** — `bookNotePath`, `metadata`, `overrides`, and `sections` (the top-level `BookSection[]`).
@@ -53,6 +53,13 @@ The same `sectionsToSkip` list (default: `Related`, `References`, `Title Options
 - **At compile time, on each linked note.** Same logic, applied per inlined note so housekeeping sections like `## Related` and `## References` from atomic notes stay out of the book.
 
 For each section, the manuscript emits, in order: the heading at the section's level, the section's `prose` (verbatim), then each inlined note, then the section's children. Empty `prose` and an empty `notes` list collapse cleanly — a heading-only section renders just its heading and nested children.
+
+The compiler accepts an **inlined-note separator** (plugin setting + per-book `book_export.inlined_note_separator`). It controls what is emitted *between* two successive notes inside the same section:
+
+- `none` — nothing (default; legacy run-on behaviour).
+- `rule` — a Pandoc thematic-break glyph row (`* * *`). Distinct from the `---` syntax which the compiler reserves for manual page breaks.
+- `blank` — an extra blank line on top of the spacing between blocks.
+- `subheading` — emit each note's display title as a heading one level below the section heading (capped at H6).
 
 When a `NoteReference` is inlined into the manuscript:
 

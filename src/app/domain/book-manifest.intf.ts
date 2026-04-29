@@ -11,6 +11,23 @@ export type PdfEngine = 'typst' | 'weasyprint' | 'xelatex' | 'tectonic' | 'wkhtm
 
 export type ExportFormat = 'epub' | 'pdf'
 
+/**
+ * Visual separator emitted between successive inlined notes within the same
+ * manifest section. Default `none` keeps the historical behaviour (notes
+ * flow into one another). Other values give the reader a visible cue that
+ * one atomic note has ended and the next has begun.
+ *
+ * - `none` — nothing emitted.
+ * - `rule` — Markdown horizontal-rule glyph row (`* * *`). Renders as a
+ *   small centred rule in print/EPUB without colliding with the manifest's
+ *   `---` page-break syntax.
+ * - `blank` — extra blank line (visible spacing, no glyph).
+ * - `subheading` — emit the note's display title as a heading one level
+ *   below the section heading. Useful when the manifest section groups
+ *   several conceptually distinct notes.
+ */
+export type InlinedNoteSeparator = 'none' | 'rule' | 'blank' | 'subheading'
+
 export interface BookMetadata {
     title: string
     authors: string[]
@@ -48,6 +65,8 @@ export interface BookExportOverrides {
      * Overrides the plugin-level default.
      */
     sectionsToSkip?: string[]
+    /** Per-book override for the visual separator between inlined notes. */
+    inlinedNoteSeparator?: InlinedNoteSeparator
 }
 
 /**

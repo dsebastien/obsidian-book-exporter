@@ -1,7 +1,12 @@
 import { TFile, type App } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import type { BookSection, NoteReference, ParsedBook } from '../domain/book-manifest.intf'
+import type {
+    BookSection,
+    InlinedNoteSeparator,
+    NoteReference,
+    ParsedBook
+} from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import {
     convertThematicBreaksToPageBreaks,
@@ -41,6 +46,8 @@ export class ManuscriptCompiler {
         const transformer = new BodyTransformer(this.app, resourcesDir)
         const pageBreakEnabled =
             book.overrides.pageBreakPerChapter ?? this.settings.pageBreakPerChapterDefault
+        const noteSeparator =
+            book.overrides.inlinedNoteSeparator ?? this.settings.inlinedNoteSeparator
         const levels = collectLevels(book.sections)
         const partLevel = levels.length > 0 ? Math.min(...levels) : Number.MAX_SAFE_INTEGER
         const chapterLevel = pickChapterLevel(levels, partLevel)
@@ -65,7 +72,8 @@ export class ManuscriptCompiler {
                 breakKind,
                 pageBreakEnabled,
                 partLevel,
-                chapterLevel
+                chapterLevel,
+                noteSeparator
             )
             parts.push(rendered)
         }
@@ -86,7 +94,8 @@ export class ManuscriptCompiler {
         prependPageBreak: PageBreak,
         pageBreakEnabled: boolean,
         partLevel: number,
-        chapterLevel: number
+        chapterLevel: number,
+        noteSeparator: InlinedNoteSeparator
     ): Promise<string> {
         const out: string[] = []
         if (prependPageBreak === 'part') out.push(PAGE_BREAK_PART)
@@ -99,12 +108,25 @@ export class ManuscriptCompiler {
             out.push('')
         }
 
+        let isFirstNote = true
+        const subheadingLevel = Math.min(6, section.level + 1)
         for (const ref of section.notes) {
             const inlined = await this.inlineNote(ref, section.level, transformer, sectionsToSkip)
-            if (inlined.trim().length > 0) {
-                out.push(inlined.trim())
+            if (inlined.trim().length === 0) continue
+            if (!isFirstNote) {
+                const sep = renderNoteSeparator(noteSeparator)
+                if (sep !== null) {
+                    out.push(sep)
+                    out.push('')
+                }
+            }
+            if (noteSeparator === 'subheading') {
+                out.push(`${'#'.repeat(subheadingLevel)} ${ref.displayTitle}`)
                 out.push('')
             }
+            out.push(inlined.trim())
+            out.push('')
+            isFirstNote = false
         }
 
         // Each child gets a chapter break unless it is the first chapter under
@@ -129,7 +151,8 @@ export class ManuscriptCompiler {
                 childBreak,
                 pageBreakEnabled,
                 partLevel,
-                chapterLevel
+                chapterLevel,
+                noteSeparator
             )
             out.push(rendered)
         }
@@ -168,6 +191,30 @@ export class ManuscriptCompiler {
 /* ------------------------------------------------------------------ */
 
 type PageBreak = 'none' | 'chapter' | 'part'
+
+/**
+ * Returns the string emitted between two successive inlined notes inside the
+ * same manifest section, based on the configured separator. `null` means
+ * "do not emit a separator line at all" (the next note simply follows after
+ * the standard blank line between blocks). `subheading` is handled by the
+ * caller — this helper only covers the body separator; the heading is
+ * emitted separately so the note's display title can drive the level.
+ */
+function renderNoteSeparator(kind: InlinedNoteSeparator): string | null {
+    switch (kind) {
+        case 'none':
+        case 'subheading':
+            return null
+        case 'rule':
+            // `* * *` is Pandoc's portable thematic-break glyph. Avoids the
+            // `---` syntax which the compiler reserves for manual page
+            // breaks (see `convertThematicBreaksToPageBreaks`).
+            return '* * *'
+        case 'blank':
+            // An extra blank line on top of the one each block already gets.
+            return ''
+    }
+}
 
 /**
  * Typst-only styling injected at the top of the manuscript so blockquotes

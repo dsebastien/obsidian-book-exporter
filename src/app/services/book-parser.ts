@@ -4,6 +4,7 @@ import type {
     BookMetadata,
     BookSection,
     ExportFormat,
+    InlinedNoteSeparator,
     NoteReference,
     ParsedBook,
     PdfEngine
@@ -301,6 +302,9 @@ function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {
     const sectionsToSkip = asStringList(r['sections_to_skip'])
     if (sectionsToSkip.length > 0) overrides.sectionsToSkip = sectionsToSkip
 
+    const sep = asString(r['inlined_note_separator'])
+    if (sep !== undefined && isInlinedNoteSeparator(sep)) overrides.inlinedNoteSeparator = sep
+
     return overrides
 }
 
@@ -351,6 +355,10 @@ function isPdfEngine(v: string): v is PdfEngine {
 
 function isExportFormat(v: string): v is ExportFormat {
     return v === 'epub' || v === 'pdf'
+}
+
+function isInlinedNoteSeparator(v: string): v is InlinedNoteSeparator {
+    return v === 'none' || v === 'rule' || v === 'blank' || v === 'subheading'
 }
 
 function trimBlankLines(lines: string[]): string[] {

@@ -1,9 +1,15 @@
 import { App, PluginSettingTab, Setting } from 'obsidian'
 import type BookExporterPlugin from '../../main'
-import type { ExportFormat, PdfEngine } from '../domain/book-manifest.intf'
+import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
 
 const PDF_ENGINES: PdfEngine[] = ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf']
 const FORMATS: ExportFormat[] = ['epub', 'pdf']
+const NOTE_SEPARATORS: { value: InlinedNoteSeparator; label: string }[] = [
+    { value: 'none', label: 'None — notes flow into one another (legacy)' },
+    { value: 'rule', label: 'Glyph rule (* * *)' },
+    { value: 'blank', label: 'Blank line' },
+    { value: 'subheading', label: 'Note title as sub-heading' }
+]
 
 export class BookExporterSettingTab extends PluginSettingTab {
     plugin: BookExporterPlugin
@@ -141,6 +147,20 @@ export class BookExporterSettingTab extends PluginSettingTab {
                         })
                     })
             )
+
+        new Setting(containerEl)
+            .setName('Inlined-note separator')
+            .setDesc(
+                'How successive notes inside the same manifest section are separated visually. "None" keeps the legacy run-on behaviour; "Glyph rule" emits a centred `* * *` between notes; "Blank line" adds extra spacing; "Note title as sub-heading" renders each note\'s display title as a heading one level below the section heading. Per-book override: `book_export.inlined_note_separator`.'
+            )
+            .addDropdown((d) => {
+                for (const { value, label } of NOTE_SEPARATORS) d.addOption(value, label)
+                d.setValue(this.plugin.settings.inlinedNoteSeparator).onChange(async (value) => {
+                    await this.plugin.updateSettings((draft) => {
+                        draft.inlinedNoteSeparator = value as InlinedNoteSeparator
+                    })
+                })
+            })
 
         new Setting(containerEl)
             .setName('Sections to skip')

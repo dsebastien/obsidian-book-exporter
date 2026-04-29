@@ -1,4 +1,4 @@
-import type { ExportFormat, PdfEngine } from '../domain/book-manifest.intf'
+import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
 
 export interface PluginSettings {
     /** Path or PATH name of the pandoc binary. */
@@ -50,6 +50,15 @@ export interface PluginSettings {
      */
     sectionsToSkip: string[]
 
+    /**
+     * Visual separator emitted between successive inlined notes inside the
+     * same manifest section. `none` keeps the legacy run-on behaviour;
+     * `rule` adds a centred glyph rule; `blank` adds extra spacing;
+     * `subheading` emits the note's display title as a sub-heading. Per-book
+     * `book_export.inlined_note_separator` overrides this.
+     */
+    inlinedNoteSeparator: InlinedNoteSeparator
+
     includeTocByDefault: boolean
     tocDepthDefault: number
     pageBreakPerChapterDefault: boolean
@@ -73,6 +82,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultMainFont: 'Liberation Serif',
     defaultMonoFont: 'Liberation Mono',
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
+    inlinedNoteSeparator: 'none',
     includeTocByDefault: true,
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,
