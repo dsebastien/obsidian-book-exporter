@@ -59,6 +59,22 @@ export interface PluginSettings {
      */
     inlinedNoteSeparator: InlinedNoteSeparator
 
+    /**
+     * When `true`, the compiler expands Obsidian note embeds (`![[Note]]`)
+     * inside inlined notes by inlining the target note's body recursively.
+     * Default `false` keeps the historical behaviour where note embeds are
+     * dropped (only image embeds are kept). Cycle detection and a depth
+     * limit (`noteEmbedMaxDepth`) keep recursion safe.
+     */
+    inlineNoteEmbeds: boolean
+    /**
+     * Maximum recursion depth for note-embed expansion. `1` only follows
+     * direct embeds; `2` follows their embeds too; etc. Embeds at the
+     * depth limit are replaced with a `[[Note]]`-style display fallback so
+     * the reader still sees a reference.
+     */
+    noteEmbedMaxDepth: number
+
     includeTocByDefault: boolean
     /**
      * When `tocDepthAuto` is `true` the compiler computes the TOC depth from
@@ -92,6 +108,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultMonoFont: 'Liberation Mono',
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     inlinedNoteSeparator: 'none',
+    inlineNoteEmbeds: false,
+    noteEmbedMaxDepth: 3,
     includeTocByDefault: true,
     tocDepthAuto: true,
     tocDepthDefault: 2,

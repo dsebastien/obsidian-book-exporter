@@ -69,6 +69,8 @@ When a `NoteReference` is inlined into the manuscript:
 4. Remaining headings are demoted to fit beneath the parent section. Offset = `parentLevel - 1`, capped at H6.
 5. Obsidian-only syntax is rewritten: callouts → fenced divs, image embeds (`![[image.png]]`) → standard images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped.
 
+`![[Note]]` (note embeds) are dropped by default. When the plugin setting `inlineNoteEmbeds` is `true`, note embeds are recursively expanded — the target note's body is inlined in place, with frontmatter stripped, configured sections-to-skip removed, the leading H1 dropped, and the body run through the same Obsidian rewriter. Recursion is bounded by `noteEmbedMaxDepth` (default 3); embeds at the depth limit fall back to their display title (alias or basename). Per-call cycle detection prevents `A → B → A` loops.
+
 ## Page breaks
 
 If `page_break_per_chapter` is true, the compiler emits two kinds of breaks:

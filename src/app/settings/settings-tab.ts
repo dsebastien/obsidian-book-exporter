@@ -149,6 +149,36 @@ export class BookExporterSettingTab extends PluginSettingTab {
             )
 
         new Setting(containerEl)
+            .setName('Inline note embeds')
+            .setDesc(
+                'When on, `![[Note]]` embeds inside inlined notes are recursively expanded with the embedded note\'s body. Default off — embeds are dropped (only image embeds are kept). Cycle detection and the depth limit below keep recursion safe.'
+            )
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.inlineNoteEmbeds).onChange(async (value) => {
+                    await this.plugin.updateSettings((draft) => {
+                        draft.inlineNoteEmbeds = value
+                    })
+                })
+            )
+        new Setting(containerEl)
+            .setName('Note embed max depth')
+            .setDesc(
+                'Maximum recursion depth for note-embed expansion. 1 = direct embeds only; 2 = embeds of embeds; etc. Embeds at the depth limit are replaced with their display title.'
+            )
+            .addText((t) =>
+                t
+                    .setValue(String(this.plugin.settings.noteEmbedMaxDepth))
+                    .onChange(async (value) => {
+                        const n = Number(value)
+                        if (Number.isFinite(n) && n >= 1) {
+                            await this.plugin.updateSettings((draft) => {
+                                draft.noteEmbedMaxDepth = Math.floor(n)
+                            })
+                        }
+                    })
+            )
+
+        new Setting(containerEl)
             .setName('Inlined-note separator')
             .setDesc(
                 'How successive notes inside the same manifest section are separated visually. "None" keeps the legacy run-on behaviour; "Glyph rule" emits a centred `* * *` between notes; "Blank line" adds extra spacing; "Note title as sub-heading" renders each note\'s display title as a heading one level below the section heading. Per-book override: `book_export.inlined_note_separator`.'

@@ -43,7 +43,11 @@ export class ManuscriptCompiler {
         await fs.mkdir(resourcesDir, { recursive: true })
 
         const sectionsToSkip = book.overrides.sectionsToSkip ?? this.settings.sectionsToSkip
-        const transformer = new BodyTransformer(this.app, resourcesDir)
+        const transformer = new BodyTransformer(this.app, resourcesDir, {
+            expandNoteEmbeds: this.settings.inlineNoteEmbeds,
+            noteEmbedMaxDepth: Math.max(1, Math.floor(this.settings.noteEmbedMaxDepth)),
+            sectionsToSkip
+        })
         const pageBreakEnabled =
             book.overrides.pageBreakPerChapter ?? this.settings.pageBreakPerChapterDefault
         const noteSeparator =
@@ -353,15 +357,25 @@ function demoteHeadings(content: string, parentLevel: number): string {
 /* body transformer                                                    */
 /* ------------------------------------------------------------------ */
 
+interface BodyTransformerOptions {
+    /** Whether to recursively inline `![[Note]]` embeds. */
+    expandNoteEmbeds: boolean
+    /** Maximum recursion depth for note-embed expansion. */
+    noteEmbedMaxDepth: number
+    /** Heading names skipped inside expanded embeds (same as the manifest's). */
+    sectionsToSkip: string[]
+}
+
 class BodyTransformer {
     private readonly copied = new Map<string, string>()
 
     constructor(
         private readonly app: App,
-        private readonly resourcesDir: string
+        private readonly resourcesDir: string,
+        private readonly opts: BodyTransformerOptions
     ) {}
 
-    async transform(content: string, source: TFile): Promise<string> {
+    async transform(content: string, source: TFile, depth = 0, visited?: Set<string>): Promise<string> {
         const lines = content.split(/\r?\n/)
         const out: string[] = []
         let inFence = false
@@ -403,7 +417,7 @@ class BodyTransformer {
             }
 
             const stripped = stripObsidianComments(line)
-            const withImages = await this.rewriteImages(stripped, source)
+            const withImages = await this.rewriteImages(stripped, source, depth, visited)
             const withWikilinks = this.rewriteWikilinks(withImages, source)
             out.push(withWikilinks)
         }
@@ -412,7 +426,12 @@ class BodyTransformer {
         return out.join('\n')
     }
 
-    private async rewriteImages(line: string, source: TFile): Promise<string> {
+    private async rewriteImages(
+        line: string,
+        source: TFile,
+        depth: number,
+        visited: Set<string> | undefined
+    ): Promise<string> {
         let result = line
         const wikiImg = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
         result = await replaceAsync(result, wikiImg, async (_match, target: string, alias?: string) => {
@@ -421,9 +440,19 @@ class BodyTransformer {
                 return formatExternalEmbed(trimmed, alias?.trim())
             }
             const copied = await this.copyAsset(trimmed, source)
-            if (copied === null) return ''
-            const altText = alias?.trim() ?? path.basename(target)
-            return `![${altText}](${copied})`
+            if (copied !== null) {
+                const altText = alias?.trim() ?? path.basename(target)
+                return `![${altText}](${copied})`
+            }
+            // Not an image — try note-embed expansion when enabled.
+            const expanded = await this.expandNoteEmbed(
+                trimmed,
+                alias?.trim(),
+                source,
+                depth,
+                visited
+            )
+            return expanded ?? ''
         })
 
         const mdImg = /!\[([^\]]*)\]\(([^)\s]+)\)/g
@@ -451,6 +480,57 @@ class BodyTransformer {
                 return display
             }
         )
+    }
+
+    /**
+     * Expands `![[Note]]` (or `![[Note#section]]`, `![[Note|alias]]`) by
+     * inlining the target note's body. Honors the plugin's
+     * `inlineNoteEmbeds` toggle, applies the configured `noteEmbedMaxDepth`,
+     * and tracks `visited` paths to break cycles. Section anchors are not
+     * resolved (slicing into a single heading is left as a follow-up); the
+     * full note body is inlined in that case.
+     *
+     * Returns `null` when the embed should not be expanded (feature off,
+     * target not a note, anchor only, etc.) so the caller falls back to
+     * the legacy "drop the embed" behaviour. Returns a fallback display
+     * string (`alias` or basename) when the depth limit is reached or a
+     * cycle is detected — the reader still sees a reference, just not the
+     * full body.
+     */
+    private async expandNoteEmbed(
+        target: string,
+        alias: string | undefined,
+        source: TFile,
+        depth: number,
+        visited: Set<string> | undefined
+    ): Promise<string | null> {
+        if (!this.opts.expandNoteEmbeds) return null
+
+        // Strip any `#section` / `^block` anchor — we inline the whole note.
+        const linkpath = target.split(/[#^]/, 1)[0]?.trim() ?? target
+        if (linkpath.length === 0) return null
+
+        const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, source.path)
+        if (!(file instanceof TFile)) return null
+        if (file.extension.toLowerCase() !== 'md') return null
+
+        const fallbackDisplay = alias ?? file.basename
+
+        if (depth + 1 >= this.opts.noteEmbedMaxDepth) {
+            // Bottomed out — render as plain text rather than recursing further.
+            return fallbackDisplay
+        }
+        const seen = visited ?? new Set<string>()
+        if (seen.has(file.path)) return fallbackDisplay
+
+        const raw = await this.app.vault.cachedRead(file)
+        const body = stripFrontmatter(raw)
+        const skipped = stripSkippedSections(body, this.opts.sectionsToSkip)
+        const headerless = dropFirstH1(skipped)
+
+        const nextVisited = new Set(seen)
+        nextVisited.add(file.path)
+        return this.transform(headerless, file, depth + 1, nextVisited)
     }
 
     private async copyAsset(target: string, source: TFile): Promise<string | null> {
