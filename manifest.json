@@ -2,7 +2,7 @@
     "id": "obsidian-book-exporter",
     "name": "Book Exporter",
     "description": "Export books written in Obsidian (one manifest note + linked chapter notes) to EPUB and PDF via Pandoc.",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "minAppVersion": "1.4.0",
     "isDesktopOnly": true,
     "author": "Sébastien Dubois",
