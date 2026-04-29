@@ -175,6 +175,7 @@ Run by `validate-book` and as a pre-flight before any export. All are blocking u
 7. `cover` (if set) must resolve to an existing image inside or outside the vault.
 8. `pandoc` must be reachable. (Resolved at command time, not parse time.)
 9. Cycle detection in note embeds (`![[Note]]`).
+10. Duplicate-note detection. A note referenced more than once in the manifest emits a `warning` with the section breadcrumbs of every occurrence — almost always a manifest error since the content would be inlined twice.
 
 ## Architecture
 

@@ -30,9 +30,14 @@ export class BookValidator {
             })
         }
 
+        // `references` keys by `filePath` and accumulates the section
+        // breadcrumbs the path appears under. Used at the end to flag
+        // notes referenced more than once — almost always a mistake
+        // (the note's content would be inlined twice in the export).
+        const references = new Map<string, string[]>()
         let totalNotes = 0
         for (const section of book.sections) {
-            totalNotes += this.validateSection(section, issues, [])
+            totalNotes += this.validateSection(section, issues, [], references)
         }
         if (book.sections.length > 0 && totalNotes === 0) {
             issues.push({
@@ -40,6 +45,16 @@ export class BookValidator {
                 message:
                     'Manifest has sections but no resolved note references. Add bulleted wikilinks under your headings.'
             })
+        }
+
+        for (const [filePath, locations] of references) {
+            if (locations.length > 1) {
+                issues.push({
+                    level: 'warning',
+                    message: `Duplicate note "${filePath}" referenced ${String(locations.length)}× under: ${locations.join('; ')}. The content would be inlined multiple times in the export.`,
+                    location: filePath
+                })
+            }
         }
 
         return {
@@ -52,7 +67,8 @@ export class BookValidator {
     private validateSection(
         section: BookSection,
         issues: ValidationIssue[],
-        ancestors: string[]
+        ancestors: string[],
+        references: Map<string, string[]>
     ): number {
         const path = [...ancestors, section.title].filter((p) => p.length > 0).join(' › ')
         let count = 0
@@ -66,10 +82,13 @@ export class BookValidator {
                 })
             } else {
                 count += 1
+                const existing = references.get(ref.filePath) ?? []
+                existing.push(path.length > 0 ? path : '<root>')
+                references.set(ref.filePath, existing)
             }
         }
         for (const child of section.children) {
-            count += this.validateSection(child, issues, [...ancestors, section.title])
+            count += this.validateSection(child, issues, [...ancestors, section.title], references)
         }
         return count
     }
