@@ -29,6 +29,18 @@ export interface PluginSettings {
     coverProperty: string
 
     /**
+     * Typst PDF engine requires a `mainfont` and `monofont` to render —
+     * without them Pandoc 3.6+ produces a template whose `conf()` fails
+     * with "font fallback list must not be empty". These defaults are
+     * forwarded to pandoc as `-V mainfont=...` / `-V monofont=...` for PDF
+     * exports that don't already define them via `pandoc_extra_args`.
+     * Use a font that ships with `typst fonts` on the host (e.g.
+     * `Liberation Serif`, `New Computer Modern`, `Noto Serif`).
+     */
+    defaultMainFont: string
+    defaultMonoFont: string
+
+    /**
      * Heading names (case-insensitive) to skip — applied both to the manifest
      * body before parsing (so authoring scaffolding like "Title Options" or
      * "Target Audience" never reaches the export) and to each linked note
@@ -58,6 +70,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultLanguage: 'en',
     defaultAuthors: [],
     coverProperty: 'cover',
+    defaultMainFont: 'Liberation Serif',
+    defaultMonoFont: 'Liberation Mono',
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     includeTocByDefault: true,
     tocDepthDefault: 2,

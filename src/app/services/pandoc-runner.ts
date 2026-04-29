@@ -64,6 +64,13 @@ export class PandocRunner {
         if (format === 'pdf') {
             const engine: PdfEngine = book.overrides.pdfEngine ?? this.settings.defaultPdfEngine
             args.push(`--pdf-engine=${engine}`)
+            const extras = book.overrides.pandocExtraArgs ?? []
+            if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {
+                args.push('-V', `mainfont=${this.settings.defaultMainFont}`)
+            }
+            if (this.settings.defaultMonoFont.length > 0 && !definesVar(extras, 'monofont')) {
+                args.push('-V', `monofont=${this.settings.defaultMonoFont}`)
+            }
         }
 
         if (book.overrides.pandocExtraArgs !== undefined) {
@@ -81,6 +88,25 @@ export function buildOutputFilename(book: ParsedBook, format: ExportFormat): str
     const slug = slugify(book.metadata.title)
     const date = new Date().toISOString().slice(0, 10)
     return `${slug}_${date}.${format}`
+}
+
+/**
+ * Returns true when the user has already pinned the given pandoc variable
+ * (e.g. `mainfont`) via `book_export.pandoc_extra_args`. Avoids us
+ * overriding their explicit choice with the plugin default.
+ */
+function definesVar(extras: string[], name: string): boolean {
+    const equals = `${name}=`
+    for (let i = 0; i < extras.length; i++) {
+        const arg = extras[i]!
+        if (arg === '-V' || arg === '--variable') {
+            const next = extras[i + 1]
+            if (next !== undefined && (next === name || next.startsWith(equals))) return true
+        }
+        if (arg.startsWith(`-V${name}=`) || arg.startsWith(`-V ${name}=`)) return true
+        if (arg.startsWith(`--variable=${name}=`) || arg.startsWith(`--variable ${name}=`)) return true
+    }
+    return false
 }
 
 function slugify(value: string): string {

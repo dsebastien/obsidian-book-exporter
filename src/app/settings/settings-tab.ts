@@ -163,6 +163,39 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
     private renderRendering(containerEl: HTMLElement): void {
         new Setting(containerEl).setName('Rendering').setHeading()
+
+        new Setting(containerEl)
+            .setName('PDF main font')
+            .setDesc(
+                'Forwarded to pandoc as `-V mainfont=…` for PDF exports. Required by Pandoc 3.6+ Typst (an empty font causes "font fallback list must not be empty"). Use a font reported by `typst fonts` on this machine — e.g. Liberation Serif, New Computer Modern, Noto Serif. Overridable per book via `pandoc_extra_args`.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('Liberation Serif')
+                    .setValue(this.plugin.settings.defaultMainFont)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.defaultMainFont = value.trim()
+                        })
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('PDF mono font')
+            .setDesc(
+                'Forwarded to pandoc as `-V monofont=…` for code blocks. Examples: Liberation Mono, DejaVu Sans Mono, JetBrainsMono NF.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('Liberation Mono')
+                    .setValue(this.plugin.settings.defaultMonoFont)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.defaultMonoFont = value.trim()
+                        })
+                    })
+            )
+
         new Setting(containerEl).setName('Include TOC by default').addToggle((t) =>
             t.setValue(this.plugin.settings.includeTocByDefault).onChange(async (value) => {
                 await this.plugin.updateSettings((draft) => {

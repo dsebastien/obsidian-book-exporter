@@ -355,7 +355,11 @@ class BodyTransformer {
         let result = line
         const wikiImg = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
         result = await replaceAsync(result, wikiImg, async (_match, target: string, alias?: string) => {
-            const copied = await this.copyAsset(target.trim(), source)
+            const trimmed = target.trim()
+            if (isUrl(trimmed)) {
+                return formatExternalEmbed(trimmed, alias?.trim())
+            }
+            const copied = await this.copyAsset(trimmed, source)
             if (copied === null) return ''
             const altText = alias?.trim() ?? path.basename(target)
             return `![${altText}](${copied})`
@@ -363,6 +367,9 @@ class BodyTransformer {
 
         const mdImg = /!\[([^\]]*)\]\(([^)\s]+)\)/g
         result = await replaceAsync(result, mdImg, async (_match, alt: string, target: string) => {
+            if (isUrl(target)) {
+                return formatExternalEmbed(target, alt)
+            }
             const copied = await this.copyAsset(decodeURI(target), source)
             if (copied === null) return `![${alt}](${target})`
             return `![${alt}](${copied})`
@@ -407,6 +414,35 @@ class BodyTransformer {
 }
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tif', 'tiff'])
+
+function isUrl(value: string): boolean {
+    return /^https?:\/\//i.test(value)
+}
+
+/**
+ * Markdown-image syntax with an `http(s)` URL is broken in print exports —
+ * Typst can't fetch remote images and the export errors out. Replace these
+ * embeds with a plain Markdown link pointing at the URL. YouTube /
+ * Vimeo / video URLs get a friendlier label so the printed link is
+ * meaningful.
+ */
+function formatExternalEmbed(url: string, label: string | undefined): string {
+    const trimmedLabel = label?.trim() ?? ''
+    const platform = videoPlatformFromUrl(url)
+    if (platform !== null) {
+        const text = trimmedLabel.length > 0 ? trimmedLabel : `Watch on ${platform}`
+        return `[${text}](${url})`
+    }
+    const text = trimmedLabel.length > 0 ? trimmedLabel : url
+    return `[${text}](${url})`
+}
+
+function videoPlatformFromUrl(url: string): string | null {
+    if (/(?:^|\.)youtube\.com\/|(?:^|\.)youtu\.be\//i.test(url)) return 'YouTube'
+    if (/(?:^|\.)vimeo\.com\//i.test(url)) return 'Vimeo'
+    if (/(?:^|\.)loom\.com\//i.test(url)) return 'Loom'
+    return null
+}
 
 function sanitizeAssetName(name: string): string {
     return name.replace(/[^A-Za-z0-9._-]/g, '_')
