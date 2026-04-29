@@ -54,8 +54,7 @@ export class PandocRunner {
         const includeToc = book.overrides.includeToc ?? this.settings.includeTocByDefault
         if (includeToc) {
             args.push('--toc')
-            const depth = book.overrides.tocDepth ?? this.settings.tocDepthDefault
-            args.push(`--toc-depth=${String(depth)}`)
+            args.push(`--toc-depth=${String(pickTocDepth(book, this.settings))}`)
         }
 
         if (format === 'epub' && book.metadata.coverPath !== undefined) {
@@ -88,6 +87,33 @@ export function buildOutputFilename(book: ParsedBook, format: ExportFormat): str
     const slug = slugify(book.metadata.title)
     const date = new Date().toISOString().slice(0, 10)
     return `${slug}_${date}.${format}`
+}
+
+/**
+ * Picks the `--toc-depth` value passed to pandoc. Resolution order:
+ * 1. Per-book `book_export.toc_depth` override — author intent wins.
+ * 2. Plugin setting `tocDepthAuto` enabled → derive from the manifest's
+ *    deepest heading level (so a parts+chapters manifest gets depth 3
+ *    automatically). Falls back to `tocDepthDefault` when the manifest
+ *    has no parseable heading (validator already flags that case).
+ * 3. Otherwise, the plugin's static `tocDepthDefault`.
+ *
+ * Result is clamped to [1, 6] — pandoc accepts higher values but they
+ * have no effect; clamping keeps the CLI argument tidy.
+ */
+function pickTocDepth(book: ParsedBook, settings: PluginSettings): number {
+    if (book.overrides.tocDepth !== undefined) {
+        return clampDepth(book.overrides.tocDepth)
+    }
+    if (settings.tocDepthAuto) {
+        if (book.maxHeadingLevel > 0) return clampDepth(book.maxHeadingLevel)
+    }
+    return clampDepth(settings.tocDepthDefault)
+}
+
+function clampDepth(value: number): number {
+    if (!Number.isFinite(value)) return 1
+    return Math.min(6, Math.max(1, Math.floor(value)))
 }
 
 /**

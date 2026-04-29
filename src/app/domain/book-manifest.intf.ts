@@ -109,4 +109,11 @@ export interface ParsedBook {
      * (the lowest non-1 heading level the manifest uses).
      */
     sections: BookSection[]
+    /**
+     * Deepest heading level encountered while walking the manifest tree
+     * (2..6, or `0` when the manifest has no parseable section).
+     * Lets the exporter pick a TOC depth that matches the actual structure
+     * without forcing the user to set `toc_depth` per book.
+     */
+    maxHeadingLevel: number
 }

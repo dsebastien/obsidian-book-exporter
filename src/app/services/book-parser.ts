@@ -50,12 +50,14 @@ export class BookParser {
 
         const { sections, bodyTitle } = this.parseBody(cleanBody, file)
         const metadata = this.extractMetadata(fm, file, bodyTitle)
+        const maxHeadingLevel = computeMaxHeadingLevel(sections)
 
         return {
             bookNotePath: file.path,
             metadata,
             overrides,
-            sections
+            sections,
+            maxHeadingLevel
         }
     }
 
@@ -359,6 +361,24 @@ function isExportFormat(v: string): v is ExportFormat {
 
 function isInlinedNoteSeparator(v: string): v is InlinedNoteSeparator {
     return v === 'none' || v === 'rule' || v === 'blank' || v === 'subheading'
+}
+
+/**
+ * Walks the section tree and returns the deepest heading level encountered
+ * (e.g. a `## H2` + `### H3` manifest yields `3`). Returns `0` when there
+ * are no sections — the validator catches that case separately, but a
+ * neutral value keeps downstream code (TOC depth picker) safe.
+ */
+function computeMaxHeadingLevel(sections: BookSection[]): number {
+    let max = 0
+    const walk = (list: BookSection[]): void => {
+        for (const s of list) {
+            if (s.level > max) max = s.level
+            walk(s.children)
+        }
+    }
+    walk(sections)
+    return max
 }
 
 function trimBlankLines(lines: string[]): string[] {

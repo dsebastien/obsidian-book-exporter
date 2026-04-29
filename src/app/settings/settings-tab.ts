@@ -223,16 +223,33 @@ export class BookExporterSettingTab extends PluginSettingTab {
                 })
             })
         )
-        new Setting(containerEl).setName('TOC depth').addText((t) =>
-            t.setValue(String(this.plugin.settings.tocDepthDefault)).onChange(async (value) => {
-                const n = Number(value)
-                if (Number.isFinite(n) && n > 0) {
+        new Setting(containerEl)
+            .setName('Auto TOC depth')
+            .setDesc(
+                'When enabled (default), the TOC depth is computed from the deepest heading level actually present in the manifest (parts + chapters → depth 3, flat chapters → depth 2). Disable to fall back to the static TOC depth below. Per-book `book_export.toc_depth` always wins.'
+            )
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.tocDepthAuto).onChange(async (value) => {
                     await this.plugin.updateSettings((draft) => {
-                        draft.tocDepthDefault = Math.floor(n)
+                        draft.tocDepthAuto = value
                     })
-                }
-            })
-        )
+                })
+            )
+        new Setting(containerEl)
+            .setName('TOC depth (fallback)')
+            .setDesc(
+                'Used when "Auto TOC depth" is off, or when the manifest has no parseable heading.'
+            )
+            .addText((t) =>
+                t.setValue(String(this.plugin.settings.tocDepthDefault)).onChange(async (value) => {
+                    const n = Number(value)
+                    if (Number.isFinite(n) && n > 0) {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.tocDepthDefault = Math.floor(n)
+                        })
+                    }
+                })
+            )
         new Setting(containerEl)
             .setName('Page break per chapter')
             .setDesc(

@@ -21,7 +21,8 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Sections to skip | comma list | `Related, References, Title Options, Target Audience` | Heading names (case-insensitive). Applied to the manifest body before parsing (drops authoring scaffolding) AND to each linked note when inlining (drops housekeeping sections). |
 | Inlined-note separator | enum | `none` | Visual cue between successive notes inside the same section. `none` keeps the legacy run-on layout; `rule` emits a centred `* * *` glyph rule; `blank` adds extra spacing; `subheading` renders each note's display title as a heading one level below the section heading. Per-book override: `book_export.inlined_note_separator`. |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
-| TOC depth | integer | 2 | `--toc-depth=N`. |
+| Auto TOC depth | boolean | true | When on, the TOC depth is derived from the deepest heading level actually present in the manifest (parts + chapters → 3, flat chapters → 2). Disable to use the static fallback. Per-book `book_export.toc_depth` always wins. |
+| TOC depth (fallback) | integer | 2 | `--toc-depth=N`. Used only when **Auto TOC depth** is off, or when the manifest has no parseable heading. |
 | Page break per chapter | boolean | true | Inserts a page break before each top-level section (the lowest-numbered heading level used in the manifest). |
 | Keep temporary files | boolean | false | Debug — keeps the compiled manuscript and resources after export. |
 | Verbose console logging | boolean | false | Debug. |

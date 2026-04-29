@@ -60,6 +60,15 @@ export interface PluginSettings {
     inlinedNoteSeparator: InlinedNoteSeparator
 
     includeTocByDefault: boolean
+    /**
+     * When `tocDepthAuto` is `true` the compiler computes the TOC depth from
+     * the deepest heading level actually used in the manifest (e.g. parts +
+     * chapters → depth 3). `tocDepthDefault` is then only used as a fallback
+     * when the manifest has no parseable headings. When `tocDepthAuto` is
+     * `false`, `tocDepthDefault` wins. A per-book `book_export.toc_depth`
+     * override beats both.
+     */
+    tocDepthAuto: boolean
     tocDepthDefault: number
     pageBreakPerChapterDefault: boolean
 
@@ -84,6 +93,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
     inlinedNoteSeparator: 'none',
     includeTocByDefault: true,
+    tocDepthAuto: true,
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,
     defaultFormats: ['epub', 'pdf'],
