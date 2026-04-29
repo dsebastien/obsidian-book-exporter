@@ -715,6 +715,12 @@ export function buildMetadataYaml(book: ParsedBook): string {
         lines.push('subject:')
         for (const s of m.subject) lines.push(`  - ${yamlString(s)}`)
     }
+    if (m.bibliographyPath !== undefined) {
+        lines.push(`bibliography: ${yamlString(m.bibliographyPath)}`)
+    }
+    if (m.cslPath !== undefined) {
+        lines.push(`csl: ${yamlString(m.cslPath)}`)
+    }
     lines.push('---', '')
     return lines.join('\n')
 }

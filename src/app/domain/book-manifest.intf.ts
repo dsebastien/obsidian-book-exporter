@@ -43,6 +43,20 @@ export interface BookMetadata {
     coverPath?: string
     rights?: string
     subject?: string[]
+    /**
+     * Absolute filesystem path of the bibliography file (`.bib`, `.json`,
+     * `.yaml`, etc.) once resolved from the manifest's `bibliography:`
+     * frontmatter. When set, the exporter passes `--citeproc` to pandoc
+     * and writes the path into the metadata YAML so pandoc-citeproc
+     * resolves citations like `[@smith2020]`.
+     */
+    bibliographyPath?: string
+    /**
+     * Absolute path of the optional CSL stylesheet (`csl:` frontmatter).
+     * Forwarded to pandoc as the citation style. Pandoc has a usable
+     * default when this is omitted.
+     */
+    cslPath?: string
 }
 
 export interface BookExportOverrides {

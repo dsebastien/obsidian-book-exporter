@@ -60,6 +60,12 @@ export class PandocRunner {
         const numberSections = book.overrides.numberSections ?? this.settings.numberSections
         if (numberSections) args.push('--number-sections')
 
+        // Citations are enabled implicitly by the manifest providing a
+        // `bibliography:` (or `csl:`) frontmatter field. The compiler
+        // already wrote the absolute paths into the metadata YAML so
+        // pandoc-citeproc resolves them; here we just flip the flag.
+        if (book.metadata.bibliographyPath !== undefined) args.push('--citeproc')
+
         if (format === 'epub' && book.metadata.coverPath !== undefined) {
             args.push('--epub-cover-image', book.metadata.coverPath)
         }

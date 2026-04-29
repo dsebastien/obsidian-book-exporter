@@ -73,6 +73,8 @@ book_export:
 | `cover` | optional | Vault-relative or absolute image path, an `[[wikilink]]`, or an `http(s)` URL (downloaded automatically). Used as the EPUB cover. The frontmatter key name is configurable in **Settings → Note processing → Cover frontmatter property**. |
 | `subject` | optional | Single string or list. |
 | `rights` | optional | Copyright statement. |
+| `bibliography` | optional | Vault-relative path, absolute path, or `[[wikilink]]` of a bibliography file (`.bib`, `.json`, `.yaml`). When set, citations like `[@smith2020]` in your notes are resolved by `pandoc-citeproc`. |
+| `csl` | optional | Vault-relative path, absolute path, or `[[wikilink]]` of a CSL stylesheet — controls citation rendering style. Pandoc has a usable default. |
 | `book_export` | optional | Per-book overrides — see [Configuration](configuration.md). |
 
 ## Commands

@@ -178,6 +178,8 @@ export class BookParser {
         const subject = asStringList(fm['subject'])
 
         const cover = this.resolveCover(asString(fm[this.settings.coverProperty]), file)
+        const bibliographyPath = this.resolveLocalPath(asString(fm['bibliography']), file)
+        const cslPath = this.resolveLocalPath(asString(fm['csl']), file)
 
         return {
             title,
@@ -189,8 +191,37 @@ export class BookParser {
             ...(description !== undefined && { description }),
             ...(rights !== undefined && { rights }),
             ...(subject.length > 0 && { subject }),
-            ...(cover !== undefined && { coverPath: cover })
+            ...(cover !== undefined && { coverPath: cover }),
+            ...(bibliographyPath !== undefined && { bibliographyPath }),
+            ...(cslPath !== undefined && { cslPath })
         }
+    }
+
+    /**
+     * Resolves a frontmatter path-like value (used by `bibliography:` and
+     * `csl:`) into an absolute filesystem path. Accepts: vault-relative
+     * paths, absolute paths, and Obsidian `[[wikilinks]]`. URLs are NOT
+     * supported here — citation resources need to be local files for
+     * pandoc-citeproc to read. Returns `undefined` when the value is
+     * empty or cannot be resolved.
+     */
+    private resolveLocalPath(value: string | undefined, source: TFile): string | undefined {
+        if (value === undefined || value.length === 0) return undefined
+        const stripped = value.trim().replace(/^\[\[|\]\]$/g, '').trim()
+        if (stripped.length === 0) return undefined
+
+        const direct = this.app.vault.getAbstractFileByPath(stripped)
+        if (direct instanceof TFile) {
+            return this.toAbsolutePath(direct.path)
+        }
+        const linked = this.app.metadataCache.getFirstLinkpathDest(stripped, source.path)
+        if (linked instanceof TFile) {
+            return this.toAbsolutePath(linked.path)
+        }
+        if (stripped.startsWith('/') || /^[A-Za-z]:[\\/]/.test(stripped)) {
+            return stripped
+        }
+        return undefined
     }
 
     /**
