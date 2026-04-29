@@ -53,6 +53,8 @@ export interface BookExportOverrides {
     tocDepth?: number
     includeToc?: boolean
     pageBreakPerChapter?: boolean
+    /** `--number-sections` flag forwarded to pandoc. */
+    numberSections?: boolean
     /** Formats kicked off by the "export all" command. */
     formats?: ExportFormat[]
     /** Extra raw arguments forwarded to pandoc verbatim. */

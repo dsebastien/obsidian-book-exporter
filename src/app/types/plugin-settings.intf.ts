@@ -84,6 +84,13 @@ export interface PluginSettings {
      */
     noteEmbedMaxDepth: number
 
+    /**
+     * Adds `--number-sections` to the pandoc invocation when `true`. Pandoc
+     * then numbers headings from H1 down (1, 1.1, 1.1.1, ...) in the
+     * output. Per-book `book_export.number_sections` overrides this.
+     */
+    numberSections: boolean
+
     includeTocByDefault: boolean
     /**
      * When `tocDepthAuto` is `true` the compiler computes the TOC depth from
@@ -120,6 +127,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     inlinedNoteSeparator: 'none',
     inlineNoteEmbeds: false,
     noteEmbedMaxDepth: 3,
+    numberSections: false,
     includeTocByDefault: true,
     tocDepthAuto: true,
     tocDepthDefault: 2,

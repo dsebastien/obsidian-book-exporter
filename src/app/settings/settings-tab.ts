@@ -297,6 +297,19 @@ export class BookExporterSettingTab extends PluginSettingTab {
                 })
             )
         new Setting(containerEl)
+            .setName('Number sections')
+            .setDesc(
+                'Forwards `--number-sections` to pandoc — headings get hierarchical numbers (1, 1.1, 1.1.1, ...). Per-book override: `book_export.number_sections`.'
+            )
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.numberSections).onChange(async (value) => {
+                    await this.plugin.updateSettings((draft) => {
+                        draft.numberSections = value
+                    })
+                })
+            )
+
+        new Setting(containerEl)
             .setName('Page break per chapter')
             .setDesc(
                 'Insert a page break before each top-level section (the lowest-numbered heading level used in the manifest).'

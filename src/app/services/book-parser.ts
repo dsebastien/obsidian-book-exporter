@@ -295,6 +295,9 @@ function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {
     const pageBreak = asBoolean(r['page_break_per_chapter'])
     if (pageBreak !== undefined) overrides.pageBreakPerChapter = pageBreak
 
+    const numberSections = asBoolean(r['number_sections'])
+    if (numberSections !== undefined) overrides.numberSections = numberSections
+
     const formats = asStringList(r['formats']).filter(isExportFormat)
     if (formats.length > 0) overrides.formats = formats
 

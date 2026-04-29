@@ -23,6 +23,7 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Inline note embeds | boolean | false | When on, `![[Note]]` embeds inside inlined notes are recursively expanded with the embedded note's body. Default off — embeds are dropped (only image embeds are kept). |
 | Note embed max depth | integer | 3 | Maximum recursion depth for note-embed expansion. 1 = direct embeds only; 2 = embeds of embeds; etc. Embeds at the depth limit are replaced with their display title. |
 | Typst image width | string | `100%` | Forwarded as `#set image(width: <value>)` in the Typst preamble. Caps every image when the PDF engine is Typst. Accepts any Typst length (`100%`, `80%`, `15cm`). Leave empty to disable. |
+| Number sections | boolean | false | Forwards `--number-sections` — headings get hierarchical numbers (`1`, `1.1`, `1.1.1`, …). Per-book override: `book_export.number_sections`. |
 | Include TOC by default | boolean | true | Adds `--toc` to Pandoc. |
 | Auto TOC depth | boolean | true | When on, the TOC depth is derived from the deepest heading level actually present in the manifest (parts + chapters → 3, flat chapters → 2). Disable to use the static fallback. Per-book `book_export.toc_depth` always wins. |
 | TOC depth (fallback) | integer | 2 | `--toc-depth=N`. Used only when **Auto TOC depth** is off, or when the manifest has no parseable heading. |
@@ -56,6 +57,7 @@ book_export:
 | `toc_depth` | integer | Overrides the global TOC depth. |
 | `include_toc` | boolean | Whether to include a TOC for this book. |
 | `page_break_per_chapter` | boolean | Page-break behaviour for this book. |
+| `number_sections` | boolean | Forwards `--number-sections` to pandoc for this book. |
 | `formats` | list | Formats produced by **Export to all formats**. Subset of `[epub, pdf]`. |
 | `sections_to_skip` | list | Heading names (case-insensitive). Applied to both the manifest body and linked notes. Replaces — does not extend — the global setting. |
 | `inlined_note_separator` | enum | `none` / `rule` / `blank` / `subheading`. Overrides the plugin setting for this book. |

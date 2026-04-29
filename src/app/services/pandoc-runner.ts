@@ -57,6 +57,9 @@ export class PandocRunner {
             args.push(`--toc-depth=${String(pickTocDepth(book, this.settings))}`)
         }
 
+        const numberSections = book.overrides.numberSections ?? this.settings.numberSections
+        if (numberSections) args.push('--number-sections')
+
         if (format === 'epub' && book.metadata.coverPath !== undefined) {
             args.push('--epub-cover-image', book.metadata.coverPath)
         }
