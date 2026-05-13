@@ -1,5 +1,7 @@
 # Release Notes
 
+## 0.0.2 (2026-05-13)
+
 ## 0.0.1 (2026-04-29)
 
 ### ⚠ BREAKING CHANGES
