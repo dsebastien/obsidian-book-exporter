@@ -33,7 +33,9 @@ export class BookExporterPlugin extends Plugin {
         const pandoc = await probeBinary(this.settings.pandocPath)
         if (!pandoc.ok) {
             const where =
-                this.settings.pandocPath === 'pandoc' ? 'on $PATH' : `at ${this.settings.pandocPath}`
+                this.settings.pandocPath === 'pandoc'
+                    ? 'on $PATH'
+                    : `at ${this.settings.pandocPath}`
             new Notice(
                 `Book Exporter: pandoc not reachable ${where}. Set Settings → Book Exporter → Pandoc path. (${pandoc.error ?? 'not found'})`,
                 10000

@@ -101,7 +101,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Default language')
-            .setDesc('BCP-47 code (en, fr, ...) used when the manifest doesn\'t set one.')
+            .setDesc("BCP-47 code (en, fr, ...) used when the manifest doesn't set one.")
             .addText((t) =>
                 t.setValue(this.plugin.settings.defaultLanguage).onChange(async (value) => {
                     await this.plugin.updateSettings((draft) => {
@@ -151,7 +151,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Inline note embeds')
             .setDesc(
-                'When on, `![[Note]]` embeds inside inlined notes are recursively expanded with the embedded note\'s body. Default off — embeds are dropped (only image embeds are kept). Cycle detection and the depth limit below keep recursion safe.'
+                "When on, `![[Note]]` embeds inside inlined notes are recursively expanded with the embedded note's body. Default off — embeds are dropped (only image embeds are kept). Cycle detection and the depth limit below keep recursion safe."
             )
             .addToggle((t) =>
                 t.setValue(this.plugin.settings.inlineNoteEmbeds).onChange(async (value) => {
@@ -354,11 +354,13 @@ export class BookExporterSettingTab extends PluginSettingTab {
                 .setButtonText('@dSebastien')
                 .onClick(() => window.open('https://x.com/dSebastien'))
         )
-        new Setting(containerEl).setName('Buy me a coffee').addButton((b) =>
-            b
-                .setButtonText('☕ Donate')
-                .onClick(() => window.open('https://www.buymeacoffee.com/dsebastien'))
-        )
+        new Setting(containerEl)
+            .setName('Buy me a coffee')
+            .addButton((b) =>
+                b
+                    .setButtonText('☕ Donate')
+                    .onClick(() => window.open('https://www.buymeacoffee.com/dsebastien'))
+            )
     }
 }
 

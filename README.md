@@ -30,36 +30,42 @@ authors: [Sébastien Dubois]
 language: en
 publisher: DeveloPassion
 description: A book about turning notes into knowledge.
-cover: covers/the-context-layer.jpg                  # vault path, [[wikilink]], absolute path, or http(s) URL
-                                                      # the frontmatter key (default `cover`) is configurable in settings
+cover:
+    covers/the-context-layer.jpg # vault path, [[wikilink]], absolute path, or http(s) URL
+    # the frontmatter key (default `cover`) is configurable in settings
 book_export:
-  formats: [epub, pdf]
-  pdf_engine: typst
-  page_break_per_chapter: true
-  sections_to_skip: [Related, References, Title Options, Target Audience]
-  output_dir: "~/Books/The Context Layer"
+    formats: [epub, pdf]
+    pdf_engine: typst
+    page_break_per_chapter: true
+    sections_to_skip: [Related, References, Title Options, Target Audience]
+    output_dir: '~/Books/The Context Layer'
 ---
 
 # The Context Layer
 
 ## Foreword
+
 - [[Foreword]]
 
 ## Part I — The Problem
 
 ### Chapter 1 — Why Notes Fail
+
 - [[Why Notes Fail]]
 - [[The Cost of Forgetting]]
 
 ### Chapter 2 — The Cost
+
 - [[The Cost]]
 
 ## Part II — The Solution
 
 ### Chapter 3 — Building Context
+
 - [[Building Context]]
 
 ## Acknowledgements
+
 - [[Acknowledgements]]
 - [[About the Author]]
 ```
@@ -95,15 +101,15 @@ export OBSIDIAN_VAULT_LOCATION="/path/to/your/vault"
 bun run dev
 ```
 
-The dev build copies the plugin into `<vault>/.obsidian/plugins/obsidian-book-exporter/` automatically and writes a `.hotreload` marker for the [Hot Reload](https://github.com/pjeby/hot-reload) plugin.
+The dev build copies the plugin into `<vault>/.obsidian/plugins/book-exporter/` automatically and writes a `.hotreload` marker for the [Hot Reload](https://github.com/pjeby/hot-reload) plugin.
 
 ## External tools
 
-| Tool | Required for | Install |
-|------|--------------|---------|
-| Pandoc ≥ 3.x | EPUB, PDF | <https://pandoc.org/installing.html> |
-| Typst (recommended PDF engine) | PDF | <https://typst.app> — single binary |
-| xelatex / tectonic (alternative PDF engines) | PDF | only if you prefer LaTeX |
+| Tool                                         | Required for | Install                              |
+| -------------------------------------------- | ------------ | ------------------------------------ |
+| Pandoc ≥ 3.x                                 | EPUB, PDF    | <https://pandoc.org/installing.html> |
+| Typst (recommended PDF engine)               | PDF          | <https://typst.app> — single binary  |
+| xelatex / tectonic (alternative PDF engines) | PDF          | only if you prefer LaTeX             |
 
 ## Status
 

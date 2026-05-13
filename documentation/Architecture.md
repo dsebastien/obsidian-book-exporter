@@ -47,5 +47,5 @@ For PDF, Pandoc dispatches to a configurable engine. Default is **Typst** — si
 ## Key invariants
 
 - Output directory is an **absolute filesystem path** configured by the user (or set per book via `book_export.output_dir`); `~` is expanded. The plugin refuses to export when it is not configured.
-- Temp files live in the **OS temp directory** (`os.tmpdir()`), in a per-export folder named `obsidian-book-exporter-<bookSlug>-<random>` (`fs.mkdtemp`). Never inside the vault. Cleaned up after every export unless `keepTempFiles` is set.
+- Temp files live in the **OS temp directory** (`os.tmpdir()`), in a per-export folder named `book-exporter-<bookSlug>-<random>` (`fs.mkdtemp`). Never inside the vault. Cleaned up after every export unless `keepTempFiles` is set.
 - Pandoc is given a YAML metadata file rather than CLI metadata flags. This avoids escaping issues with non-ASCII titles.

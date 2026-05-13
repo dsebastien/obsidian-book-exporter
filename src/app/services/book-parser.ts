@@ -100,10 +100,7 @@ export class BookParser {
                     if (bodyTitle === undefined) bodyTitle = heading.text.trim()
                     continue
                 }
-                while (
-                    stack.length > 1 &&
-                    stack[stack.length - 1]!.level >= heading.level
-                ) {
+                while (stack.length > 1 && stack[stack.length - 1]!.level >= heading.level) {
                     stack.pop()
                 }
                 const section: BookSection = {
@@ -144,10 +141,7 @@ export class BookParser {
         return { sections: root.children, bodyTitle }
     }
 
-    private resolveLink(
-        link: { linkpath: string; alias?: string },
-        source: TFile
-    ): NoteReference {
+    private resolveLink(link: { linkpath: string; alias?: string }, source: TFile): NoteReference {
         const target = this.app.metadataCache.getFirstLinkpathDest(link.linkpath, source.path)
         const filePath = target instanceof TFile ? target.path : link.linkpath
         const displayTitle =
@@ -207,7 +201,10 @@ export class BookParser {
      */
     private resolveLocalPath(value: string | undefined, source: TFile): string | undefined {
         if (value === undefined || value.length === 0) return undefined
-        const stripped = value.trim().replace(/^\[\[|\]\]$/g, '').trim()
+        const stripped = value
+            .trim()
+            .replace(/^\[\[|\]\]$/g, '')
+            .trim()
         if (stripped.length === 0) return undefined
 
         const direct = this.app.vault.getAbstractFileByPath(stripped)

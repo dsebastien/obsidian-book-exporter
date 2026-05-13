@@ -441,7 +441,12 @@ class BodyTransformer {
         private readonly opts: BodyTransformerOptions
     ) {}
 
-    async transform(content: string, source: TFile, depth = 0, visited?: Set<string>): Promise<string> {
+    async transform(
+        content: string,
+        source: TFile,
+        depth = 0,
+        visited?: Set<string>
+    ): Promise<string> {
         const lines = content.split(/\r?\n/)
         const out: string[] = []
         let inFence = false
@@ -500,26 +505,30 @@ class BodyTransformer {
     ): Promise<string> {
         let result = line
         const wikiImg = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
-        result = await replaceAsync(result, wikiImg, async (_match, target: string, alias?: string) => {
-            const trimmed = target.trim()
-            if (isUrl(trimmed)) {
-                return formatExternalEmbed(trimmed, alias?.trim())
+        result = await replaceAsync(
+            result,
+            wikiImg,
+            async (_match, target: string, alias?: string) => {
+                const trimmed = target.trim()
+                if (isUrl(trimmed)) {
+                    return formatExternalEmbed(trimmed, alias?.trim())
+                }
+                const copied = await this.copyAsset(trimmed, source)
+                if (copied !== null) {
+                    const altText = alias?.trim() ?? path.basename(target)
+                    return `![${altText}](${copied})`
+                }
+                // Not an image — try note-embed expansion when enabled.
+                const expanded = await this.expandNoteEmbed(
+                    trimmed,
+                    alias?.trim(),
+                    source,
+                    depth,
+                    visited
+                )
+                return expanded ?? ''
             }
-            const copied = await this.copyAsset(trimmed, source)
-            if (copied !== null) {
-                const altText = alias?.trim() ?? path.basename(target)
-                return `![${altText}](${copied})`
-            }
-            // Not an image — try note-embed expansion when enabled.
-            const expanded = await this.expandNoteEmbed(
-                trimmed,
-                alias?.trim(),
-                source,
-                depth,
-                visited
-            )
-            return expanded ?? ''
-        })
+        )
 
         const mdImg = /!\[([^\]]*)\]\(([^)\s]+)\)/g
         result = await replaceAsync(result, mdImg, async (_match, alt: string, target: string) => {
@@ -542,7 +551,9 @@ class BodyTransformer {
                 const target = this.app.metadataCache.getFirstLinkpathDest(trimmed, source.path)
                 const display =
                     alias?.trim() ||
-                    (target instanceof TFile ? target.basename : trimmed.split('/').pop() || trimmed)
+                    (target instanceof TFile
+                        ? target.basename
+                        : trimmed.split('/').pop() || trimmed)
                 return display
             }
         )

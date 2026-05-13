@@ -54,7 +54,7 @@ The same `sectionsToSkip` list (default: `Related`, `References`, `Title Options
 
 For each section, the manuscript emits, in order: the heading at the section's level, the section's `prose` (verbatim), then each inlined note, then the section's children. Empty `prose` and an empty `notes` list collapse cleanly — a heading-only section renders just its heading and nested children.
 
-The compiler accepts an **inlined-note separator** (plugin setting + per-book `book_export.inlined_note_separator`). It controls what is emitted *between* two successive notes inside the same section:
+The compiler accepts an **inlined-note separator** (plugin setting + per-book `book_export.inlined_note_separator`). It controls what is emitted _between_ two successive notes inside the same section:
 
 - `none` — nothing (default; legacy run-on behaviour).
 - `rule` — a Pandoc thematic-break glyph row (`* * *`). Distinct from the `---` syntax which the compiler reserves for manual page breaks.
@@ -77,9 +77,9 @@ If `page_break_per_chapter` is true, the compiler emits two kinds of breaks:
 
 - **Chapter break** — a hard `\newpage` before each chapter after the first. Covers the common case (every chapter starts on a new page).
 - **Part break** — a format-conditional block before each part after the first that forces the next part to start on a fresh **right-hand (recto) page**, leaving the verso blank when needed. Three raw blocks are emitted so each pandoc target picks the right one:
-  - `{=typst}` → `pagebreak(to: "odd")`
-  - `{=latex}` → `\cleardoublepage`
-  - `{=html}` → `<div style="page-break-before: always"></div>`
+    - `{=typst}` → `pagebreak(to: "odd")`
+    - `{=latex}` → `\cleardoublepage`
+    - `{=html}` → `<div style="page-break-before: always"></div>`
 
 The compiler decides which break to use based on the manifest's heading levels:
 

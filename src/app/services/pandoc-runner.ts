@@ -139,7 +139,8 @@ function definesVar(extras: string[], name: string): boolean {
             if (next !== undefined && (next === name || next.startsWith(equals))) return true
         }
         if (arg.startsWith(`-V${name}=`) || arg.startsWith(`-V ${name}=`)) return true
-        if (arg.startsWith(`--variable=${name}=`) || arg.startsWith(`--variable ${name}=`)) return true
+        if (arg.startsWith(`--variable=${name}=`) || arg.startsWith(`--variable ${name}=`))
+            return true
     }
     return false
 }

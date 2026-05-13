@@ -20,30 +20,30 @@ Any Markdown note can be used as a book note — there is no required tag, folde
 
 The plugin reads these fields. Anything else is ignored.
 
-| Field | Required | Maps to | Notes |
-|-------|----------|---------|-------|
-| `title` | yes | EPUB / PDF metadata | Falls back to the note's basename. |
-| `authors` | yes | metadata | Accepts string or list. |
-| `language` | recommended | metadata | BCP-47 (`en`, `fr`). Default `en`. |
-| `isbn` | optional | metadata | |
-| `publisher` | optional | metadata | |
-| `date_published` | optional | metadata | |
-| `description` | optional | metadata | |
-| `cover` | optional | EPUB cover, PDF cover page | Vault-relative path, `[[wikilink]]`, absolute filesystem path, or `http(s)` URL (downloaded to the temp folder before pandoc runs). The frontmatter key name is configurable via the plugin setting `coverProperty`. |
-| `book_export` | optional | export overrides | Object — see below. |
+| Field            | Required    | Maps to                    | Notes                                                                                                                                                                                                                |
+| ---------------- | ----------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`          | yes         | EPUB / PDF metadata        | Falls back to the note's basename.                                                                                                                                                                                   |
+| `authors`        | yes         | metadata                   | Accepts string or list.                                                                                                                                                                                              |
+| `language`       | recommended | metadata                   | BCP-47 (`en`, `fr`). Default `en`.                                                                                                                                                                                   |
+| `isbn`           | optional    | metadata                   |                                                                                                                                                                                                                      |
+| `publisher`      | optional    | metadata                   |                                                                                                                                                                                                                      |
+| `date_published` | optional    | metadata                   |                                                                                                                                                                                                                      |
+| `description`    | optional    | metadata                   |                                                                                                                                                                                                                      |
+| `cover`          | optional    | EPUB cover, PDF cover page | Vault-relative path, `[[wikilink]]`, absolute filesystem path, or `http(s)` URL (downloaded to the temp folder before pandoc runs). The frontmatter key name is configurable via the plugin setting `coverProperty`. |
+| `book_export`    | optional    | export overrides           | Object — see below.                                                                                                                                                                                                  |
 
 `book_export` (per-book overrides — all optional):
 
 ```yaml
 book_export:
-  output_dir: "~/Books/My Book"
-  pdf_engine: typst                         # typst|weasyprint|xelatex|tectonic|wkhtmltopdf
-  toc_depth: 2
-  include_toc: true
-  page_break_per_chapter: true
-  formats: [epub, pdf]
-  sections_to_skip: [Related, References]
-  pandoc_extra_args: ["--top-level-division=chapter"]
+    output_dir: '~/Books/My Book'
+    pdf_engine: typst # typst|weasyprint|xelatex|tectonic|wkhtmltopdf
+    toc_depth: 2
+    include_toc: true
+    page_break_per_chapter: true
+    formats: [epub, pdf]
+    sections_to_skip: [Related, References]
+    pandoc_extra_args: ['--top-level-division=chapter']
 ```
 
 ### Body (manuscript structure)
@@ -51,21 +51,27 @@ book_export:
 The body is a heading tree. The plugin walks it and emits the manuscript in source order. There are no reserved heading names — the structure is yours.
 
 ```markdown
-# The Context Layer        ← optional body title (frontmatter `title` wins)
+# The Context Layer ← optional body title (frontmatter `title` wins)
 
 ## Foreword
+
 - [[Foreword]]
 
 ## Part I — The Problem
+
 ### Chapter 1 — Why Notes Fail
+
 - [[Why Notes Fail]]
 - [[The Cost of Forgetting]]
 
 ## Part II — The Solution
+
 ### Chapter 3 — Building Context
+
 - [[Building Context]]
 
 ## Acknowledgements
+
 - [[Acknowledgements]]
 - [[About the Author]]
 ```
@@ -99,28 +105,28 @@ Book note ──▶ BookParser ──▶ ParsedBook (manifest + ordered FilePath
 - Walk the `BookSection` tree from the manifest. For each section, emit a heading at its level, then the section's `prose` verbatim (paragraphs, plain bullets, tables, blockquotes, code fences kept as-is), then inline its linked notes in order, then recurse into its children.
 - Inject a small Typst preamble at the top of the manuscript (raw `{=typst}` block) that styles block quotes (left rule, italicized body) so PDF quotes render cleanly without LaTeX.
 - For each inlined note:
-  - Strip its YAML frontmatter.
-  - Drop configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
-  - Drop the note's first `# H1` (the manifest section title is authoritative).
-  - Demote remaining headings to fit underneath the parent section: offset = `parentLevel - 1`, capped at H6.
+    - Strip its YAML frontmatter.
+    - Drop configured **sections to skip** (default: `Related`, `References`) — case-insensitive heading match, fence-aware, removes the heading and its body until a same-or-higher heading.
+    - Drop the note's first `# H1` (the manifest section title is authoritative).
+    - Demote remaining headings to fit underneath the parent section: offset = `parentLevel - 1`, capped at H6.
 - Convert standalone `---` thematic-break lines into `\newpage` raw blocks (fence-aware). Applied to both inlined-note bodies (after frontmatter strip) and manifest section prose. Lets the author force a page break manually wherever the automatic breaks are not enough.
 - Page breaks (when `page_break_per_chapter` is true):
-  - **Chapter break** — `\newpage` before each chapter after the first.
-  - **Part break** — format-conditional raw blocks (`pagebreak(to: "odd")` for Typst, `\cleardoublepage` for LaTeX, CSS `page-break-before: always` for EPUB) before each part after the first, forcing parts to start on a fresh recto page in print.
-  - Decision rule: `partLevel` = lowest-numbered heading level present; `chapterLevel` = the next deeper level (or `partLevel` itself for flat manifests). When `partLevel === chapterLevel` (flat manifest), every top section gets a chapter break. When they differ, siblings at `partLevel` get part breaks; the first child at `chapterLevel` inside a part has no break, subsequent siblings get chapter breaks.
+    - **Chapter break** — `\newpage` before each chapter after the first.
+    - **Part break** — format-conditional raw blocks (`pagebreak(to: "odd")` for Typst, `\cleardoublepage` for LaTeX, CSS `page-break-before: always` for EPUB) before each part after the first, forcing parts to start on a fresh recto page in print.
+    - Decision rule: `partLevel` = lowest-numbered heading level present; `chapterLevel` = the next deeper level (or `partLevel` itself for flat manifests). When `partLevel === chapterLevel` (flat manifest), every top section gets a chapter break. When they differ, siblings at `partLevel` get part breaks; the first child at `chapterLevel` inside a part has no break, subsequent siblings get chapter breaks.
 - Transform Obsidian-specific syntax:
-  - `[[Note]]` and `[[Note|Alias]]` → resolve via `MetadataCache.getFirstLinkpathDest`. If target is itself part of the manuscript: render as plain text (the alias or basename) — internal links in print don't make sense. If external: render as Markdown link to the note's file path (informational).
-  - `![[image.png]]` → standard Markdown image; image path resolved against vault.
-  - `![[Note]]` (note embed) → inline expand recursively (depth-limited to avoid cycles).
-  - Obsidian callouts (`> [!note] Title`) → rewritten to a Pandoc-friendly fenced div: `::: {.callout .callout-note}\n**Title**\n\n> body\n:::`.
-  - `%% comment %%` → stripped.
+    - `[[Note]]` and `[[Note|Alias]]` → resolve via `MetadataCache.getFirstLinkpathDest`. If target is itself part of the manuscript: render as plain text (the alias or basename) — internal links in print don't make sense. If external: render as Markdown link to the note's file path (informational).
+    - `![[image.png]]` → standard Markdown image; image path resolved against vault.
+    - `![[Note]]` (note embed) → inline expand recursively (depth-limited to avoid cycles).
+    - Obsidian callouts (`> [!note] Title`) → rewritten to a Pandoc-friendly fenced div: `::: {.callout .callout-note}\n**Title**\n\n> body\n:::`.
+    - `%% comment %%` → stripped.
 - Copy referenced images into a `_resources/` subfolder of the temp dir and rewrite paths to be relative.
 
 ### Exporter
 
 - Computes output filename: `<slug(title)>_<YYYY-MM-DD>.<ext>` (slugify the title, fall back to book note basename).
 - Invokes the Pandoc runner once per requested format. Captures stderr for the "operation failed" notice.
-- All temp files live in the OS temp directory (`os.tmpdir()`), in a per-export folder named `obsidian-book-exporter-<bookSlug>-<random>` (created via `fs.mkdtemp`). Never inside the vault. Cleaned up on success unless settings say otherwise (debug mode).
+- All temp files live in the OS temp directory (`os.tmpdir()`), in a per-export folder named `book-exporter-<bookSlug>-<random>` (created via `fs.mkdtemp`). Never inside the vault. Cleaned up on success unless settings say otherwise (debug mode).
 - Output directory is an **absolute filesystem path** configured by the user (with `~` expansion). Empty default; plugin refuses to export until set.
 
 ### PandocRunner
@@ -135,32 +141,32 @@ Wraps `child_process.spawn` (Node, available in Obsidian desktop):
 
 ## Commands
 
-| Command | What it does |
-|---------|--------------|
-| `book-exporter:export-epub` | Export the active book note to EPUB. |
-| `book-exporter:export-pdf` | Export the active book note to PDF. |
-| `book-exporter:export-all` | Export to every format listed in `book_export.formats` (or settings default). |
-| `book-exporter:preview-manuscript` | Compile the manuscript only — write the combined `.md` to the configured output dir and open it. Useful for debugging. |
-| `book-exporter:validate-book` | Parse the active book note, run validations, surface a report (missing wikilink targets, missing required frontmatter, broken images). No export. |
-| `book-exporter:open-output-folder` | Reveal the configured output folder in the file manager. |
+| Command                            | What it does                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `book-exporter:export-epub`        | Export the active book note to EPUB.                                                                                                              |
+| `book-exporter:export-pdf`         | Export the active book note to PDF.                                                                                                               |
+| `book-exporter:export-all`         | Export to every format listed in `book_export.formats` (or settings default).                                                                     |
+| `book-exporter:preview-manuscript` | Compile the manuscript only — write the combined `.md` to the configured output dir and open it. Useful for debugging.                            |
+| `book-exporter:validate-book`      | Parse the active book note, run validations, surface a report (missing wikilink targets, missing required frontmatter, broken images). No export. |
+| `book-exporter:open-output-folder` | Reveal the configured output folder in the file manager.                                                                                          |
 
 ## Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `pandocPath` | `pandoc` | Full path or name on PATH. |
-| `defaultOutputDir` | (empty — required) | Absolute filesystem path. Supports `~`. Plugin refuses to export until set. |
-| `defaultPdfEngine` | `typst` | typst / weasyprint / xelatex / tectonic / wkhtmltopdf |
-| `defaultLanguage` | `en` | Used when book note doesn't set one. |
-| `defaultAuthors` | `[]` | Author names used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`. |
-| `coverProperty` | `cover` | Frontmatter key read for the book cover image. Configurable so manifests can use `cover`, `cover_image`, `cover_url`, etc. The value can be a vault-relative path, an `[[wikilink]]`, an absolute path, or an `http(s)` URL. |
-| `sectionsToSkip` | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining. |
-| `includeTocByDefault` | `true` | |
-| `tocDepthDefault` | `2` | |
-| `pageBreakPerChapterDefault` | `true` | Page break before each top-level section (lowest-numbered heading level used). |
-| `defaultFormats` | `[epub, pdf]` | Used by the "all formats" command. |
-| `keepTempFiles` | `false` | If true, don't clean tmp dir after export — useful for debugging. |
-| `debug` | `false` | Verbose logging. |
+| Setting                      | Default                                                 | Description                                                                                                                                                                                                                  |
+| ---------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pandocPath`                 | `pandoc`                                                | Full path or name on PATH.                                                                                                                                                                                                   |
+| `defaultOutputDir`           | (empty — required)                                      | Absolute filesystem path. Supports `~`. Plugin refuses to export until set.                                                                                                                                                  |
+| `defaultPdfEngine`           | `typst`                                                 | typst / weasyprint / xelatex / tectonic / wkhtmltopdf                                                                                                                                                                        |
+| `defaultLanguage`            | `en`                                                    | Used when book note doesn't set one.                                                                                                                                                                                         |
+| `defaultAuthors`             | `[]`                                                    | Author names used when the manifest doesn't define `authors:`. Empty falls back to `Anonymous`.                                                                                                                              |
+| `coverProperty`              | `cover`                                                 | Frontmatter key read for the book cover image. Configurable so manifests can use `cover`, `cover_image`, `cover_url`, etc. The value can be a vault-relative path, an `[[wikilink]]`, an absolute path, or an `http(s)` URL. |
+| `sectionsToSkip`             | `[Related, References, Title Options, Target Audience]` | Heading names (case-insensitive). Applied to the manifest body before parsing AND to each linked note when inlining.                                                                                                         |
+| `includeTocByDefault`        | `true`                                                  |                                                                                                                                                                                                                              |
+| `tocDepthDefault`            | `2`                                                     |                                                                                                                                                                                                                              |
+| `pageBreakPerChapterDefault` | `true`                                                  | Page break before each top-level section (lowest-numbered heading level used).                                                                                                                                               |
+| `defaultFormats`             | `[epub, pdf]`                                           | Used by the "all formats" command.                                                                                                                                                                                           |
+| `keepTempFiles`              | `false`                                                 | If true, don't clean tmp dir after export — useful for debugging.                                                                                                                                                            |
+| `debug`                      | `false`                                                 | Verbose logging.                                                                                                                                                                                                             |
 
 ## Validation rules
 

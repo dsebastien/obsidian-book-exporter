@@ -1,4 +1,4 @@
-import { type App } from 'obsidian'
+import { type App, requestUrl } from 'obsidian'
 import * as path from 'node:path'
 import * as os from 'node:os'
 import { promises as fs } from 'node:fs'
@@ -21,7 +21,10 @@ export class BookExporter {
     private readonly compiler: ManuscriptCompiler
     private readonly pandoc: PandocRunner
 
-    constructor(app: App, private readonly settings: PluginSettings) {
+    constructor(
+        app: App,
+        private readonly settings: PluginSettings
+    ) {
         this.compiler = new ManuscriptCompiler(app, settings)
         this.pandoc = new PandocRunner(settings)
     }
@@ -61,7 +64,7 @@ export class BookExporter {
 
     private async makeTempDir(book: ParsedBook): Promise<string> {
         const slug = path.basename(book.bookNotePath, '.md').replace(/[^A-Za-z0-9._-]/g, '_')
-        const prefix = path.join(os.tmpdir(), `obsidian-book-exporter-${slug}-`)
+        const prefix = path.join(os.tmpdir(), `book-exporter-${slug}-`)
         return fs.mkdtemp(prefix)
     }
 
@@ -84,9 +87,7 @@ export class BookExporter {
         }
         const absolute = expandHome(trimmed)
         if (!path.isAbsolute(absolute)) {
-            throw new Error(
-                `Output folder must be an absolute path or start with "~". Got: ${raw}`
-            )
+            throw new Error(`Output folder must be an absolute path or start with "~". Got: ${raw}`)
         }
         await fs.mkdir(absolute, { recursive: true })
         return absolute
@@ -119,13 +120,11 @@ async function materializeRemoteCover(book: ParsedBook, tempDir: string): Promis
         // ignore — keep the .img fallback
     }
 
-    const response = await fetch(cover)
-    if (!response.ok) {
-        throw new Error(
-            `Failed to download cover from ${cover}: ${String(response.status)} ${response.statusText}`
-        )
+    const response = await requestUrl({ url: cover, method: 'GET', throw: false })
+    if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Failed to download cover from ${cover}: ${String(response.status)}`)
     }
-    const buffer = new Uint8Array(await response.arrayBuffer())
+    const buffer = new Uint8Array(response.arrayBuffer)
     const dest = path.join(tempDir, `cover${extension}`)
     await fs.writeFile(dest, buffer)
     book.metadata.coverPath = dest

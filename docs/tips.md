@@ -43,13 +43,17 @@ Warnings (e.g. missing `authors`) don't block. Errors do.
 ## Troubleshooting
 
 ### "Open the book manifest note before running this command."
+
 The active pane is not a Markdown file. Open the manifest note, focus its tab, then re-run the command.
 
 ### EPUB has no cover
+
 Set `cover` in the manifest frontmatter and make sure the path resolves inside the vault. Test with **Validate current book** — broken cover paths are reported.
 
 ### TOC is too deep / too shallow
+
 Adjust `toc_depth` per book or globally. The default (`2`) shows chapters and immediate sections.
 
 ### PDF has bad page breaks or split images
+
 Make sure you're using **Typst** or a LaTeX engine — not weasyprint / wkhtmltopdf. Browser-style HTML PDF engines have weaker page-break and figure-placement logic. Typst and LaTeX handle widows, orphans, and figure floats out of the box.
