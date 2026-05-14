@@ -42,7 +42,7 @@ export function probeBinary(bin: string, timeoutMs = 5000): Promise<BinaryProbeR
         proc.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(new Uint8Array(chunk)))
         proc.stderr?.on('data', () => {})
 
-        const timer = setTimeout(() => {
+        const timer = window.setTimeout(() => {
             try {
                 proc.kill('SIGKILL')
             } catch {
@@ -52,11 +52,11 @@ export function probeBinary(bin: string, timeoutMs = 5000): Promise<BinaryProbeR
         }, timeoutMs)
 
         proc.on('error', (err) => {
-            clearTimeout(timer)
+            window.clearTimeout(timer)
             finish({ ok: false, error: err.message })
         })
         proc.on('close', (code) => {
-            clearTimeout(timer)
+            window.clearTimeout(timer)
             if (code === 0) {
                 const stdout = Buffer.concat(stdoutChunks).toString('utf8')
                 const firstLine = stdout.split(/\r?\n/, 1)[0]?.trim() ?? ''
