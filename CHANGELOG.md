@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.3...0.0.4) (2026-05-18)
+
+### Bug Fixes
+
+* **all:** better detect typst or xelatex ([810d73e](https://github.com/dsebastien/obsidian-book-exporter/commit/810d73ef883e72fee7c290940db8410b01cb0fc0)), closes [#1](https://github.com/dsebastien/obsidian-book-exporter/issues/1)
+
 ## [0.0.3](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.2...0.0.3) (2026-05-14)
 
 ## [0.0.2](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.1...0.0.2) (2026-05-13)
@@ -35,5 +41,6 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 

@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.0.4 (2026-05-18)
+
+### Bug Fixes
+
+- **all:** better detect typst or xelatex
+
 ## 0.0.3 (2026-05-14)
 
 ## 0.0.2 (2026-05-13)
