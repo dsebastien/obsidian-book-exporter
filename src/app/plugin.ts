@@ -5,6 +5,7 @@ import { BookExporterSettingTab } from './settings/settings-tab'
 import { registerCommands } from './commands/commands'
 import { log } from '../utils/log'
 import { probeBinary } from '../utils/binary-probe'
+import { buildSpawnEnv } from '../utils/spawn-env'
 
 export class BookExporterPlugin extends Plugin {
     settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
@@ -30,7 +31,8 @@ export class BookExporterPlugin extends Plugin {
      * out to be missing later (e.g. uninstalled after plugin load).
      */
     private async runPreflightCheck(): Promise<void> {
-        const pandoc = await probeBinary(this.settings.pandocPath)
+        const env = buildSpawnEnv(this.settings.extraPath)
+        const pandoc = await probeBinary(this.settings.pandocPath, { env })
         if (!pandoc.ok) {
             const where =
                 this.settings.pandocPath === 'pandoc'
@@ -51,10 +53,15 @@ export class BookExporterPlugin extends Plugin {
         // produce false negatives; we let pandoc surface those errors at
         // export time.
         if (this.settings.defaultPdfEngine === 'typst') {
-            const typst = await probeBinary('typst')
+            const typstBin =
+                this.settings.pdfEnginePath.trim().length > 0
+                    ? this.settings.pdfEnginePath.trim()
+                    : 'typst'
+            const typst = await probeBinary(typstBin, { env })
             if (!typst.ok) {
+                const where = typstBin === 'typst' ? 'on $PATH' : `at ${typstBin}`
                 new Notice(
-                    `Book Exporter: typst not reachable on $PATH. PDF export will fail. Install from https://typst.app or pick a different PDF engine in Settings. (${typst.error ?? 'not found'})`,
+                    `Book Exporter: typst not reachable ${where}. PDF export will fail. Install from https://typst.app, set Settings → Book Exporter → PDF engine path, or pick a different engine. (${typst.error ?? 'not found'})`,
                     10000
                 )
                 log(`Typst probe failed: ${typst.error ?? 'unknown'}`, 'warn')

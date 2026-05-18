@@ -139,6 +139,14 @@ The dev build copies the plugin into `<vault>/.obsidian/plugins/book-exporter/` 
 | Typst (recommended PDF engine)               | PDF          | <https://typst.app> — single binary  |
 | xelatex / tectonic (alternative PDF engines) | PDF          | only if you prefer LaTeX             |
 
+### macOS: "pandoc not found" / "typst not found" / "xelatex not found"
+
+Obsidian on macOS is an Electron GUI app launched from Finder or the dock, which means it starts with a **stripped `$PATH`** (typically only `/usr/bin:/bin:/usr/sbin:/sbin`). Even when `pandoc`, `typst`, or `xelatex` work fine from Terminal, the plugin's spawned process won't see them. Two settings let you fix this without touching shell-init files:
+
+- **Settings → Book Exporter → Pandoc path** — full path to the pandoc binary (e.g. `/usr/local/bin/pandoc` or `/opt/homebrew/bin/pandoc`).
+- **Settings → Book Exporter → PDF engine path** — full path to the PDF engine (e.g. `/opt/homebrew/bin/typst` or `/Library/TeX/texbin/xelatex`). Forwarded to pandoc as `--pdf-engine=<path>`, so pandoc doesn't have to resolve the engine via `$PATH`.
+- **Settings → Book Exporter → Extra PATH directories** — colon-separated list of directories prepended to `$PATH` for the spawned pandoc process. Lets pandoc resolve its own helper binaries (`typst`, LaTeX packages, image converters, …) without setting each path individually. Example: `/opt/homebrew/bin:/Library/TeX/texbin:/usr/local/bin`.
+
 ## Status
 
 Pre-release. Unstable. See `documentation/plans/01-mvp.md` for the design and `documentation/history/` for the change log.

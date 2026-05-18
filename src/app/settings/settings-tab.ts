@@ -47,6 +47,38 @@ export class BookExporterSettingTab extends PluginSettingTab {
                         })
                     })
             )
+
+        new Setting(containerEl)
+            .setName('PDF engine path')
+            .setDesc(
+                'Optional. Full path to the PDF engine binary (e.g. /opt/homebrew/bin/typst, /Library/TeX/texbin/xelatex). Forwarded to pandoc as `--pdf-engine=<path>`, bypassing $PATH lookup. Useful on macOS where Obsidian (Electron) starts with a stripped $PATH that does not include Homebrew or MacTeX. Leave empty to rely on $PATH. Only used when the basename matches the selected PDF engine — switching engines without updating this field falls back to $PATH lookup.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('/opt/homebrew/bin/typst')
+                    .setValue(this.plugin.settings.pdfEnginePath)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.pdfEnginePath = value.trim()
+                        })
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('Extra PATH directories')
+            .setDesc(
+                'Optional. Directories prepended to $PATH for pandoc and helper binaries it spawns (typst, xelatex, ...). Use `:` to separate entries on macOS/Linux (e.g. /opt/homebrew/bin:/Library/TeX/texbin), `;` on Windows. Lets pandoc find PDF engines without specifying full paths for each. Leave empty to use the inherited PATH unchanged.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('/opt/homebrew/bin:/Library/TeX/texbin')
+                    .setValue(this.plugin.settings.extraPath)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.extraPath = value.trim()
+                        })
+                    })
+            )
     }
 
     private renderOutput(containerEl: HTMLElement): void {

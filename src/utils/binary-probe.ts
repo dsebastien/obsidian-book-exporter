@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import type { SpawnEnv } from './spawn-env'
 
 export interface BinaryProbeResult {
     ok: boolean
@@ -6,6 +7,17 @@ export interface BinaryProbeResult {
     versionLine?: string
     /** Human-readable error message when the probe failed. */
     error?: string
+}
+
+export interface BinaryProbeOptions {
+    timeoutMs?: number
+    /**
+     * Environment forwarded to the spawned process. Defaults to the
+     * parent's env. Pass an env with an augmented `PATH` so the probe
+     * resolves binaries the same way the actual export will (relevant on
+     * macOS, where Obsidian launches with a stripped PATH).
+     */
+    env?: SpawnEnv
 }
 
 /**
@@ -21,7 +33,11 @@ export interface BinaryProbeResult {
  * `--version` (rare but possible with broken Wine wrappers etc.) would
  * otherwise stall the plugin's `onload`.
  */
-export function probeBinary(bin: string, timeoutMs = 5000): Promise<BinaryProbeResult> {
+export function probeBinary(
+    bin: string,
+    options: BinaryProbeOptions = {}
+): Promise<BinaryProbeResult> {
+    const timeoutMs = options.timeoutMs ?? 5000
     return new Promise((resolve) => {
         let settled = false
         const finish = (result: BinaryProbeResult): void => {
@@ -32,7 +48,10 @@ export function probeBinary(bin: string, timeoutMs = 5000): Promise<BinaryProbeR
 
         let proc: ReturnType<typeof spawn>
         try {
-            proc = spawn(bin, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] })
+            proc = spawn(bin, ['--version'], {
+                stdio: ['ignore', 'pipe', 'pipe'],
+                env: options.env
+            })
         } catch (err) {
             finish({ ok: false, error: err instanceof Error ? err.message : String(err) })
             return

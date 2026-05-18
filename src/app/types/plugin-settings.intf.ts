@@ -4,6 +4,23 @@ export interface PluginSettings {
     /** Path or PATH name of the pandoc binary. */
     pandocPath: string
     /**
+     * Full path to the PDF engine binary (typst / xelatex / ...). When set,
+     * it is forwarded to pandoc as `--pdf-engine=<value>`, bypassing PATH
+     * lookup. Necessary on macOS, where Obsidian (an Electron GUI app)
+     * launches with a stripped PATH that does not include Homebrew
+     * (`/opt/homebrew/bin`) or MacTeX (`/Library/TeX/texbin`). Empty means
+     * "use the engine name and let pandoc resolve it via PATH".
+     */
+    pdfEnginePath: string
+    /**
+     * Directories prepended to `PATH` for spawned `pandoc` / probe
+     * processes. Accepts the OS path separator (`:` on macOS/Linux, `;` on
+     * Windows). Lets users surface Homebrew, MacTeX, etc. to pandoc so it
+     * can resolve PDF engines and helper tools without specifying absolute
+     * paths for each. Empty means "use the inherited PATH unchanged".
+     */
+    extraPath: string
+    /**
      * Absolute filesystem path where exported books are written. Supports
      * `~` expansion (e.g. `~/Downloads`). Empty string means "not yet
      * configured" — the plugin refuses to export until the user sets it.
@@ -115,6 +132,8 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     pandocPath: 'pandoc',
+    pdfEnginePath: '',
+    extraPath: '',
     defaultOutputDir: '',
     defaultPdfEngine: 'typst',
     defaultLanguage: 'en',

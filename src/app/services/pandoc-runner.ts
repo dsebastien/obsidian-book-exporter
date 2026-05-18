@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs'
 import type { ExportFormat, ParsedBook, PdfEngine } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import type { CompiledManuscript } from './manuscript-compiler'
+import { buildSpawnEnv, type SpawnEnv } from '../../utils/spawn-env'
 
 export interface PandocResult {
     outputPath: string
@@ -28,7 +29,9 @@ export class PandocRunner {
 
         const args = this.buildArgs(format, book, compiled, outputPath)
         const started = Date.now()
-        const stderr = await runProcess(this.settings.pandocPath, args, compiled.tempDir)
+        const stderr = await runProcess(this.settings.pandocPath, args, compiled.tempDir, {
+            env: buildSpawnEnv(this.settings.extraPath)
+        })
         return { outputPath, durationMs: Date.now() - started, stderr }
     }
 
@@ -71,7 +74,8 @@ export class PandocRunner {
         }
         if (format === 'pdf') {
             const engine: PdfEngine = book.overrides.pdfEngine ?? this.settings.defaultPdfEngine
-            args.push(`--pdf-engine=${engine}`)
+            const engineArg = pickPdfEngineArg(engine, book, this.settings)
+            args.push(`--pdf-engine=${engineArg}`)
             const extras = book.overrides.pandocExtraArgs ?? []
             if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {
                 args.push('-V', `mainfont=${this.settings.defaultMainFont}`)
@@ -145,6 +149,43 @@ function definesVar(extras: string[], name: string): boolean {
     return false
 }
 
+/**
+ * Resolves what to pass to `--pdf-engine=`. Per-book `pandoc_extra_args`
+ * is the user's last-mile escape hatch — when they pinned an engine path
+ * there, we trust it and do nothing (avoid emitting two `--pdf-engine`
+ * flags). Otherwise, when the user configured a `pdfEnginePath` and the
+ * selected engine matches the basename of that path (so a user with both
+ * typst and xelatex won't have the typst path silently forwarded to a
+ * xelatex export), we forward the full path. As a last resort we pass the
+ * engine name and let pandoc resolve it via `PATH`.
+ */
+export function pickPdfEngineArg(
+    engine: PdfEngine,
+    book: ParsedBook,
+    settings: PluginSettings
+): string {
+    if (definesArg(book.overrides.pandocExtraArgs ?? [], 'pdf-engine')) return engine
+    const configured = settings.pdfEnginePath.trim()
+    if (configured.length === 0) return engine
+    const base = path.basename(configured).toLowerCase()
+    const engineLower = engine.toLowerCase()
+    if (base === engineLower || base.startsWith(`${engineLower}.`)) return configured
+    return engine
+}
+
+/**
+ * Mirrors `definesVar` but for top-level pandoc flags (e.g. `--pdf-engine`).
+ * Matches both `--flag value` and `--flag=value` forms.
+ */
+function definesArg(extras: string[], flag: string): boolean {
+    const long = `--${flag}`
+    const equals = `${long}=`
+    for (const arg of extras) {
+        if (arg === long || arg.startsWith(equals)) return true
+    }
+    return false
+}
+
 function slugify(value: string): string {
     return (
         value
@@ -156,9 +197,19 @@ function slugify(value: string): string {
     )
 }
 
-export function runProcess(bin: string, args: string[], cwd: string): Promise<string> {
+export interface RunProcessOptions {
+    /** Environment forwarded to the child process. Defaults to the parent's env. */
+    env?: SpawnEnv
+}
+
+export function runProcess(
+    bin: string,
+    args: string[],
+    cwd: string,
+    options: RunProcessOptions = {}
+): Promise<string> {
     return new Promise((resolve, reject) => {
-        const proc = spawn(bin, args, { cwd })
+        const proc = spawn(bin, args, { cwd, env: options.env })
         const stderrChunks: Uint8Array[] = []
         proc.stdout.on('data', () => {})
         proc.stderr.on('data', (chunk: Buffer) => stderrChunks.push(new Uint8Array(chunk)))
