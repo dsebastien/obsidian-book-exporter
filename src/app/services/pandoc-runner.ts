@@ -64,10 +64,11 @@ export class PandocRunner {
         if (numberSections) args.push('--number-sections')
 
         // Citations are enabled implicitly by the manifest providing a
-        // `bibliography:` (or `csl:`) frontmatter field. The compiler
-        // already wrote the absolute paths into the metadata YAML so
-        // pandoc-citeproc resolves them; here we just flip the flag.
-        if (book.metadata.bibliographyPath !== undefined) args.push('--citeproc')
+        // `bibliography:` (or `csl:`) frontmatter field. The compiler wrote
+        // the bibliography path into the metadata YAML; here we just flip the
+        // flag so citeproc renders the citations and reference list.
+        const hasCitations = book.metadata.bibliographyPath !== undefined
+        if (hasCitations) args.push('--citeproc')
 
         if (format === 'epub' && book.metadata.coverPath !== undefined) {
             args.push('--epub-cover-image', book.metadata.coverPath)
@@ -76,6 +77,14 @@ export class PandocRunner {
             const engine: PdfEngine = book.overrides.pdfEngine ?? this.settings.defaultPdfEngine
             const engineArg = pickPdfEngineArg(engine, book, this.settings)
             args.push(`--pdf-engine=${engineArg}`)
+            // The Typst writer renders citations natively (`@key` +
+            // `#bibliography()`), which only reads .bib/.yml and breaks on
+            // CSL-JSON/YAML bibliographies — the real cause of issue #2. This
+            // filter (ordered *after* --citeproc) makes citeproc the sole
+            // citation renderer, so Typst never touches the bibliography file.
+            if (engine === 'typst' && hasCitations && compiled.citationFilterPath !== undefined) {
+                args.push(`--lua-filter=${compiled.citationFilterPath}`)
+            }
             const extras = book.overrides.pandocExtraArgs ?? []
             if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {
                 args.push('-V', `mainfont=${this.settings.defaultMainFont}`)

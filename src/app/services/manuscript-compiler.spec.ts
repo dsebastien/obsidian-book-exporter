@@ -3,7 +3,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { promises as fs } from 'node:fs'
 import type { BookMetadata, ParsedBook } from '../domain/book-manifest.intf'
-import { buildMetadataYaml, copyCitationAssets } from './manuscript-compiler'
+import { buildMetadataYaml, copyCitationAssets, CITEPROC_TYPST_FILTER } from './manuscript-compiler'
 
 function makeBook(metadata: Partial<BookMetadata> = {}): ParsedBook {
     return {
@@ -97,5 +97,21 @@ describe('buildMetadataYaml', () => {
         const yaml = buildMetadataYaml(makeBook())
         expect(yaml).not.toContain('bibliography:')
         expect(yaml).not.toContain('csl:')
+    })
+})
+
+describe('CITEPROC_TYPST_FILTER', () => {
+    // Guards the load-bearing behaviour for issue #2: under the Typst PDF
+    // engine, citeproc must be the only thing that renders citations, so the
+    // writer never emits a native #bibliography() that fails on non-.bib files.
+    it('unwraps Cite elements to their citeproc-rendered inlines', () => {
+        expect(CITEPROC_TYPST_FILTER).toContain('function Cite(el)')
+        expect(CITEPROC_TYPST_FILTER).toContain('return el.content')
+    })
+
+    it('strips the bibliography and csl metadata so no native directive is emitted', () => {
+        expect(CITEPROC_TYPST_FILTER).toContain('function Meta(meta)')
+        expect(CITEPROC_TYPST_FILTER).toContain('meta.bibliography = nil')
+        expect(CITEPROC_TYPST_FILTER).toContain('meta.csl = nil')
     })
 })
