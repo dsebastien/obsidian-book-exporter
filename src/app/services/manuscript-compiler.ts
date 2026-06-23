@@ -445,8 +445,11 @@ interface BodyTransformerOptions {
     sectionsToSkip: string[]
 }
 
-class BodyTransformer {
-    private readonly copied = new Map<string, string>()
+export class BodyTransformer {
+    /** Resolved `file.path` → emitted `_resources/<name>` relative path. */
+    private readonly copiedByPath = new Map<string, string>()
+    /** Output names already used in `_resources/`, for collision avoidance. */
+    private readonly usedNames = new Set<string>()
 
     constructor(
         private readonly app: App,
@@ -624,23 +627,50 @@ class BodyTransformer {
     }
 
     private async copyAsset(target: string, source: TFile): Promise<string | null> {
-        const cached = this.copied.get(target)
-        if (cached !== undefined) return cached
-
         const file = this.app.metadataCache.getFirstLinkpathDest(target, source.path)
         if (!(file instanceof TFile)) return null
 
         const ext = file.extension.toLowerCase()
         if (!IMAGE_EXTENSIONS.has(ext)) return null
 
+        // Dedupe by resolved path so the same image embedded via different
+        // links (or twice) is copied once.
+        const cached = this.copiedByPath.get(file.path)
+        if (cached !== undefined) return cached
+
         const data = await this.app.vault.readBinary(file)
-        const safeName = sanitizeAssetName(file.name)
+        // Two images with the same basename in different folders (e.g. each
+        // note's own `Pasted image.png`) would otherwise overwrite each other
+        // in the flat `_resources/` dir and both render the wrong image
+        // (issue #5). Give every distinct source a unique output name.
+        const safeName = this.uniqueAssetName(sanitizeAssetName(file.name))
         const dest = path.join(this.resourcesDir, safeName)
         await fs.writeFile(dest, new Uint8Array(data))
 
         const rel = `_resources/${safeName}`
-        this.copied.set(target, rel)
+        this.copiedByPath.set(file.path, rel)
         return rel
+    }
+
+    /**
+     * Returns `name` if unused, otherwise the first free `base-N.ext` variant.
+     * Assignments are recorded so distinct sources never collide.
+     */
+    private uniqueAssetName(name: string): string {
+        if (!this.usedNames.has(name)) {
+            this.usedNames.add(name)
+            return name
+        }
+        const ext = path.extname(name)
+        const base = name.slice(0, name.length - ext.length)
+        let i = 2
+        let candidate = `${base}-${String(i)}${ext}`
+        while (this.usedNames.has(candidate)) {
+            i++
+            candidate = `${base}-${String(i)}${ext}`
+        }
+        this.usedNames.add(candidate)
+        return candidate
     }
 }
 
