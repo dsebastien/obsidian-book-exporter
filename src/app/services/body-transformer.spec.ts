@@ -14,17 +14,29 @@ function makeFile(p: string): TFile {
     return Object.assign(new TFile(), { path: p, name, extension, basename })
 }
 
-/** Minimal App whose link resolver maps a set of file paths to TFiles. */
-function makeApp(paths: string[]): App {
-    const byPath = new Map(paths.map((p) => [p, makeFile(p)]))
+/**
+ * Minimal App whose link resolver maps file paths to TFiles. `contents` lets
+ * note bodies be supplied for embed-expansion tests (keyed by path).
+ */
+function makeApp(paths: string[], contents: Record<string, string> = {}): App {
+    // Resolve by full path, by name, and by basename — mirroring how Obsidian's
+    // getFirstLinkpathDest accepts `Child`, `Child.md`, or `a/diagram.png`.
+    const byKey = new Map<string, TFile>()
+    for (const p of paths) {
+        const file = makeFile(p)
+        byKey.set(p, file)
+        byKey.set(file.name, file)
+        byKey.set(file.basename, file)
+    }
     return {
         metadataCache: {
-            getFirstLinkpathDest: (linkpath: string): TFile | null => byPath.get(linkpath) ?? null
+            getFirstLinkpathDest: (linkpath: string): TFile | null => byKey.get(linkpath) ?? null
         },
         vault: {
             // Distinct bytes per path so an overwrite would be detectable.
             readBinary: (file: TFile): Promise<ArrayBuffer> =>
-                Promise.resolve(new TextEncoder().encode(`bytes:${file.path}`).buffer)
+                Promise.resolve(new TextEncoder().encode(`bytes:${file.path}`).buffer),
+            cachedRead: (file: TFile): Promise<string> => Promise.resolve(contents[file.path] ?? '')
         }
     } as unknown as App
 }
@@ -75,5 +87,93 @@ describe('BodyTransformer image handling (issue #5)', () => {
         const links = out.match(/_resources\/diagram\.png/g) ?? []
         expect(links.length).toBe(2)
         expect(await fs.readdir(resources)).toEqual(['diagram.png'])
+    })
+})
+
+describe('BodyTransformer markup rewriting', () => {
+    it('converts a callout to a fenced div', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+        const input = ['> [!note] Heads up', '> body line', '', 'after'].join('\n')
+
+        const out = await bt.transform(input, makeFile('n.md'))
+
+        expect(out).toContain('::: {.callout .callout-note}')
+        expect(out).toContain('**Heads up**')
+        expect(out).toContain('body line')
+        expect(out).toContain(':::')
+        expect(out).toContain('after')
+    })
+
+    it('flattens [[wikilinks]] to display text (alias wins)', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Concept.md'])
+        const bt = new BodyTransformer(app, resources, opts)
+
+        const out = await bt.transform(
+            'See [[Concept]] and [[Concept|the idea]].',
+            makeFile('n.md')
+        )
+
+        expect(out).toBe('See Concept and the idea.')
+    })
+
+    it('turns a remote image embed into a plain link instead of a broken image', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+
+        const out = await bt.transform('![alt](https://example.com/x.png)', makeFile('n.md'))
+
+        expect(out).toBe('[alt](https://example.com/x.png)')
+    })
+
+    it('labels a video embed link by platform (www.youtube.com)', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+
+        const out = await bt.transform('![[https://www.youtube.com/watch?v=abc]]', makeFile('n.md'))
+
+        expect(out).toBe('[Watch on YouTube](https://www.youtube.com/watch?v=abc)')
+    })
+})
+
+describe('BodyTransformer note-embed expansion', () => {
+    const embedOpts = { expandNoteEmbeds: true, noteEmbedMaxDepth: 3, sectionsToSkip: [] }
+
+    it('inlines an embedded note body when enabled', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Child.md'], { 'Child.md': '# Child\nchild prose' })
+        const bt = new BodyTransformer(app, resources, embedOpts)
+
+        const out = await bt.transform('![[Child]]', makeFile('parent.md'))
+
+        // First H1 of the embed is dropped; body is inlined.
+        expect(out).toContain('child prose')
+        expect(out).not.toContain('# Child')
+    })
+
+    it('does not expand embeds when the feature is disabled', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Child.md'], { 'Child.md': 'child prose' })
+        const bt = new BodyTransformer(app, resources, opts) // expandNoteEmbeds: false
+
+        const out = await bt.transform('![[Child]]', makeFile('parent.md'))
+
+        expect(out).not.toContain('child prose')
+    })
+
+    it('breaks embed cycles instead of recursing forever', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['A.md', 'B.md'], {
+            'A.md': 'A body ![[B]]',
+            'B.md': 'B body ![[A]]'
+        })
+        const bt = new BodyTransformer(app, resources, embedOpts)
+
+        const out = await bt.transform('![[A]]', makeFile('root.md'))
+
+        expect(out).toContain('A body')
+        expect(out).toContain('B body')
+        // Resolves without throwing / hanging — cycle is cut.
     })
 })
