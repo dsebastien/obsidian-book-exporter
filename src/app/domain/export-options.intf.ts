@@ -12,6 +12,15 @@ export interface ExportResult {
     durationMs: number
 }
 
+/**
+ * Per-format result of an export run. Unlike a thrown error, a failed format
+ * does not abort the formats that follow it — each format reports its own
+ * outcome so a partial success (e.g. EPUB ok, PDF failed) can be surfaced.
+ */
+export type ExportOutcome =
+    | { format: ExportFormat; ok: true; outputPath: string; durationMs: number }
+    | { format: ExportFormat; ok: false; error: string }
+
 export interface ValidationIssue {
     level: 'error' | 'warning'
     message: string

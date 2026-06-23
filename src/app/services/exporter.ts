@@ -3,7 +3,7 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import { promises as fs } from 'node:fs'
 import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
-import type { ExportResult } from '../domain/export-options.intf'
+import type { ExportOutcome } from '../domain/export-options.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import { ManuscriptCompiler, type CompiledManuscript } from './manuscript-compiler'
 import { PandocRunner, buildOutputFilename } from './pandoc-runner'
@@ -38,20 +38,40 @@ export class BookExporter {
         return this.compiler.compile(book, tempDir)
     }
 
-    async export(book: ParsedBook, formats: ExportFormat[]): Promise<ExportResult[]> {
+    /**
+     * Exports the book to each requested format. A failure in one format
+     * (e.g. a missing PDF engine) does not abort the others — every format
+     * returns its own {@link ExportOutcome}, so the caller can surface a
+     * partial success. Failures that prevent *any* export (output dir not
+     * configured, manuscript compilation) still throw.
+     */
+    async export(book: ParsedBook, formats: ExportFormat[]): Promise<ExportOutcome[]> {
         if (formats.length === 0) return []
 
         const outputDir = await this.resolveOutputDir(book)
         const tempDir = await this.makeTempDir(book)
         await materializeRemoteCover(book, tempDir)
         const compiled = await this.compiler.compile(book, tempDir)
-        const results: ExportResult[] = []
+        const outcomes: ExportOutcome[] = []
 
         try {
             for (const format of formats) {
                 const outputPath = path.join(outputDir, buildOutputFilename(book, format))
-                const r = await this.pandoc.run(format, book, compiled, outputPath)
-                results.push({ format, outputPath: r.outputPath, durationMs: r.durationMs })
+                try {
+                    const r = await this.pandoc.run(format, book, compiled, outputPath)
+                    outcomes.push({
+                        format,
+                        ok: true,
+                        outputPath: r.outputPath,
+                        durationMs: r.durationMs
+                    })
+                } catch (err) {
+                    outcomes.push({
+                        format,
+                        ok: false,
+                        error: err instanceof Error ? err.message : String(err)
+                    })
+                }
             }
         } finally {
             if (!this.settings.keepTempFiles) {
@@ -59,7 +79,7 @@ export class BookExporter {
             }
         }
 
-        return results
+        return outcomes
     }
 
     private async makeTempDir(book: ParsedBook): Promise<string> {

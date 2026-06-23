@@ -1,6 +1,7 @@
 import { Notice, TFile, type App } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
+import type { ExportOutcome } from '../domain/export-options.intf'
 import { BookParser } from '../services/book-parser'
 import { BookExporter, expandHome } from '../services/exporter'
 import { BookValidator, formatReport } from '../services/validator'
@@ -71,17 +72,57 @@ async function runExport(ctx: CommandContext, requested: ExportFormat[] | null):
 
     new Notice(`Exporting "${book.metadata.title}" → ${formats.join(', ')}…`)
     try {
-        const results = await exporter.export(book, formats)
-        const summary = results
-            .map((r) => `${r.format.toUpperCase()} (${(r.durationMs / 1000).toFixed(1)}s)`)
-            .join(', ')
-        new Notice(`Book exported: ${summary}`)
-        log(`Export complete for ${book.bookNotePath}`, 'info', results)
+        const outcomes = await exporter.export(book, formats)
+        const summary = summarizeOutcomes(outcomes)
+        new Notice(summary.message, summary.hadFailure ? 12000 : undefined)
+        log(
+            `Export ${summary.hadFailure ? 'finished with failures' : 'complete'} for ${book.bookNotePath}`,
+            summary.hadFailure ? 'warn' : 'info',
+            outcomes
+        )
     } catch (err) {
+        // Reaches here only for failures that prevent any export at all
+        // (e.g. manuscript compilation) — per-format failures are reported
+        // by summarizeOutcomes instead.
         const msg = err instanceof Error ? err.message : String(err)
         log(`Export failed for ${book.bookNotePath}: ${msg}`, 'error', err)
         new Notice(`Export failed: ${truncate(msg, 200)}`)
     }
+}
+
+/**
+ * Builds the user-facing Notice for a completed export run. Reports each
+ * successful format with its duration and each failed format with its error,
+ * so a partial success (e.g. EPUB ok, PDF failed) is never hidden behind a
+ * single "Export failed". See issue #7.
+ */
+export function summarizeOutcomes(outcomes: ExportOutcome[]): {
+    message: string
+    hadFailure: boolean
+} {
+    const succeeded = outcomes.filter((o): o is Extract<ExportOutcome, { ok: true }> => o.ok)
+    const failed = outcomes.filter((o): o is Extract<ExportOutcome, { ok: false }> => !o.ok)
+    const hadFailure = failed.length > 0
+
+    if (!hadFailure) {
+        const list = succeeded
+            .map((o) => `${o.format.toUpperCase()} (${(o.durationMs / 1000).toFixed(1)}s)`)
+            .join(', ')
+        return { message: `Book exported: ${list}`, hadFailure: false }
+    }
+
+    const parts: string[] = []
+    if (succeeded.length > 0) {
+        const list = succeeded
+            .map((o) => `${o.format.toUpperCase()} (${(o.durationMs / 1000).toFixed(1)}s)`)
+            .join(', ')
+        parts.push(`Exported: ${list}.`)
+    }
+    const failList = failed
+        .map((o) => `${o.format.toUpperCase()} — ${truncate(o.error, 160)}`)
+        .join('; ')
+    parts.push(`Failed: ${failList}`)
+    return { message: parts.join(' '), hadFailure: true }
 }
 
 async function runPreview(ctx: CommandContext): Promise<void> {
