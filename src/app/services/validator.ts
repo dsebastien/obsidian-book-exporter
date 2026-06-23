@@ -132,3 +132,20 @@ export function formatReport(report: ValidationReport): string {
     }
     return lines.join('\n')
 }
+
+/**
+ * Formats just the `warning`-level issues for a non-blocking notice shown at
+ * export time (errors are handled separately, before this is reached). Returns
+ * `null` when there are no warnings, so the caller can skip the notice. See
+ * issue #27.
+ */
+export function formatWarnings(report: ValidationReport): string | null {
+    const warnings = report.issues.filter((i) => i.level === 'warning')
+    if (warnings.length === 0) return null
+    const lines = ['Exporting with warnings:']
+    for (const issue of warnings) {
+        const loc = issue.location !== undefined ? ` (${issue.location})` : ''
+        lines.push(`⚠️ ${issue.message}${loc}`)
+    }
+    return lines.join('\n')
+}

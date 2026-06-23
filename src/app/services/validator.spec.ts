@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { TFile, type App } from 'obsidian'
-import { BookValidator } from './validator'
+import { BookValidator, formatWarnings } from './validator'
 import type { BookMetadata, BookSection, ParsedBook } from '../domain/book-manifest.intf'
 
 /** App whose vault resolves only the given paths to (mock) TFiles. */
@@ -89,5 +89,22 @@ describe('BookValidator core checks', () => {
         const book = makeBook({}, [section('A', ['ch1.md']), section('B', ['ch1.md'])])
         const report = v.validate(book)
         expect(report.issues.some((i) => i.message.includes('Duplicate note'))).toBe(true)
+    })
+})
+
+describe('formatWarnings (issue #27)', () => {
+    it('returns null when there are no warnings', () => {
+        const v = new BookValidator(makeApp(['ch1.md']), present)
+        const report = v.validate(makeBook())
+        expect(formatWarnings(report)).toBeNull()
+    })
+
+    it('lists only warnings, not errors', () => {
+        const v = new BookValidator(makeApp([]), absent) // unresolved link (error) + missing bib (warning)
+        const report = v.validate(makeBook({ bibliographyPath: '/v/refs.json' }))
+        const text = formatWarnings(report)
+        expect(text).not.toBeNull()
+        expect(text).toContain('Bibliography file not found')
+        expect(text).not.toContain('Unresolved link')
     })
 })
