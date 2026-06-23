@@ -130,7 +130,16 @@ async function runPreview(ctx: CommandContext): Promise<void> {
     if (setup === null) return
     const { book, exporter } = setup
     try {
+        // Discard the previous preview's temp dir before creating a new one so
+        // they don't pile up for the session (issue #6). Skipped when the user
+        // has opted to keep temp files for inspection.
+        if (!ctx.plugin.settings.keepTempFiles) {
+            await ctx.plugin.previewTempDirs.cleanupAll()
+        }
         const compiled = await exporter.compileOnly(book)
+        if (!ctx.plugin.settings.keepTempFiles) {
+            ctx.plugin.previewTempDirs.register(compiled.tempDir)
+        }
         new Notice(`Manuscript compiled: ${compiled.manuscriptPath}`)
         await openExternal(compiled.manuscriptPath)
     } catch (err) {

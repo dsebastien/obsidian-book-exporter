@@ -1,4 +1,5 @@
 import { Notice, Plugin } from 'obsidian'
+import { promises as fs } from 'node:fs'
 import { produce, type Draft } from 'immer'
 import { DEFAULT_SETTINGS, type PluginSettings } from './types/plugin-settings.intf'
 import { BookExporterSettingTab } from './settings/settings-tab'
@@ -6,9 +7,18 @@ import { registerCommands } from './commands/commands'
 import { log } from '../utils/log'
 import { probeBinary } from '../utils/binary-probe'
 import { buildSpawnEnv } from '../utils/spawn-env'
+import { PreviewTempDirs } from '../utils/temp-dirs'
 
 export class BookExporterPlugin extends Plugin {
     settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
+
+    /**
+     * Temp dirs produced by the preview command, cleaned on unload and before
+     * each new preview so they don't accumulate for the session (issue #6).
+     */
+    readonly previewTempDirs = new PreviewTempDirs((dir) =>
+        fs.rm(dir, { recursive: true, force: true })
+    )
 
     override async onload(): Promise<void> {
         log('Loading Book Exporter', 'debug')
@@ -73,6 +83,9 @@ export class BookExporterPlugin extends Plugin {
 
     override onunload(): void {
         log('Unloading Book Exporter', 'debug')
+        // Remove any preview temp dirs left over this session. Fire-and-forget
+        // — onunload is synchronous and best-effort cleanup must not block it.
+        void this.previewTempDirs.cleanupAll()
     }
 
     async loadSettings(): Promise<void> {
