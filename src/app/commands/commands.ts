@@ -4,7 +4,7 @@ import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
 import type { ExportOutcome } from '../domain/export-options.intf'
 import { BookParser } from '../services/book-parser'
 import { BookExporter, expandHome } from '../services/exporter'
-import { BookValidator, formatReport } from '../services/validator'
+import { BookValidator, formatReport, formatWarnings } from '../services/validator'
 import { log } from '../../utils/log'
 import { openExternal } from '../../utils/open-path'
 
@@ -197,6 +197,10 @@ async function prepareBook(
             new Notice(`Cannot export — ${formatReport(report)}`, 8000)
             return null
         }
+        // Surface non-blocking warnings (duplicate notes, missing bibliography,
+        // …) at export time instead of silently dropping them — see issue #27.
+        const warnings = formatWarnings(report)
+        if (warnings !== null) new Notice(warnings, 8000)
         const exporter = new BookExporter(ctx.app, ctx.plugin.settings)
         return { book, exporter }
     } catch (err) {
