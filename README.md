@@ -78,7 +78,16 @@ When a linked note is inlined, the plugin:
 - Removes configurable sections (default: `Related`, `References`, `Title Options`, `Target Audience`) — case-insensitive heading match, fence-aware. The same list is applied to the manifest body before parsing, so authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) stays in the manifest but never reaches the export.
 - Drops the note's first `# H1` (the section title in the manifest is authoritative).
 - Demotes remaining headings so they nest under the manifest section (offset = `parentLevel - 1`, capped at H6).
-- Rewrites Obsidian-only syntax: callouts → fenced divs, `![[image]]` → standard Markdown images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped.
+- Rewrites Obsidian-only syntax: callouts → fenced divs, `![[image]]` → standard Markdown images (copied to `_resources/`), `[[Note]]` → display text, `%% comments %%` stripped (including multi-line comments; `%%` inside code fences is preserved).
+
+### Output files
+
+Each export is written to your configured output folder as `<title-slug>_<YYYY-MM-DD>.<ext>` — e.g. `the-context-layer_2026-06-23.pdf`. The date is the export day, so:
+
+- **Re-exporting the same book on the same day overwrites the previous file** (intentional — keeps the folder tidy while you iterate).
+- Exporting on a different day produces a new dated file alongside the old one.
+
+If a multi-format export partially fails (e.g. EPUB succeeds but PDF can't find its engine), the successful formats are still written and the notice reports exactly which format failed and why.
 
 ## Commands
 

@@ -10,7 +10,7 @@ import type {
     PdfEngine
 } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
-import { stripFrontmatter, stripSkippedSections } from '../../utils/markdown'
+import { FENCE_RE, stripFrontmatter, stripSkippedSections } from '../../utils/markdown'
 
 /**
  * Parses a manifest note into a {@link ParsedBook}.
@@ -268,7 +268,6 @@ export class BookParser {
 /* internals                                                           */
 /* ------------------------------------------------------------------ */
 
-const FENCE_RE = /^\s*(```|~~~)/
 const HEADING_RE = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/
 const BULLET_RE = /^(\s*)(?:[-*+])\s+(.*)$/
 const WIKILINK_RE = /\[\[([^\]|#^]+)(?:#[^\]|]+)?(?:\^[^\]|]+)?(?:\|([^\]]+))?\]\]/g

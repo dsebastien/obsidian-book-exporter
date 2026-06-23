@@ -4,7 +4,12 @@
  * stays trivially unit-testable.
  */
 
-const FENCE_RE = /^\s*(```|~~~)/
+/**
+ * Matches the opening (or closing) line of a fenced code block — ` ``` ` or
+ * `~~~`, optionally indented. Shared by every line-walking pass so fenced
+ * content is treated consistently across the parser and compiler.
+ */
+export const FENCE_RE = /^\s*(```|~~~)/
 const HEADING_RE = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/
 
 /**
