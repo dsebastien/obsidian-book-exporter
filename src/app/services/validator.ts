@@ -1,14 +1,22 @@
 import { TFile, type App } from 'obsidian'
+import { existsSync } from 'node:fs'
 import type { BookSection, ParsedBook } from '../domain/book-manifest.intf'
 import type { ValidationIssue, ValidationReport } from '../domain/export-options.intf'
 
 /**
  * Quality gate before any export. Verifies that the parsed book has the
- * minimum metadata, at least one section, and that every wikilink in the
- * manifest points to a real note in the vault.
+ * minimum metadata, at least one section, that every wikilink in the manifest
+ * points to a real note in the vault, and that any configured citation files
+ * exist on disk.
+ *
+ * `fileExists` is injectable so the citation-file check can be unit-tested
+ * without touching the filesystem; it defaults to `fs.existsSync`.
  */
 export class BookValidator {
-    constructor(private readonly app: App) {}
+    constructor(
+        private readonly app: App,
+        private readonly fileExists: (path: string) => boolean = existsSync
+    ) {}
 
     validate(book: ParsedBook): ValidationReport {
         const issues: ValidationIssue[] = []
@@ -27,6 +35,26 @@ export class BookValidator {
                 level: 'error',
                 message:
                     'No sections found. The manifest body must contain at least one ## heading with a list of wikilinks underneath.'
+            })
+        }
+
+        // Citation files are resolved to absolute paths by the parser but never
+        // checked for existence; a missing one only surfaces as a cryptic
+        // pandoc/citeproc error mid-export. Warn (not error) so the user can
+        // still proceed deliberately. See issue #10.
+        const { bibliographyPath, cslPath } = book.metadata
+        if (bibliographyPath !== undefined && !this.fileExists(bibliographyPath)) {
+            issues.push({
+                level: 'warning',
+                message: `Bibliography file not found — citations will not resolve: ${bibliographyPath}`,
+                location: bibliographyPath
+            })
+        }
+        if (cslPath !== undefined && !this.fileExists(cslPath)) {
+            issues.push({
+                level: 'warning',
+                message: `CSL stylesheet not found — the default citation style will be used: ${cslPath}`,
+                location: cslPath
             })
         }
 
