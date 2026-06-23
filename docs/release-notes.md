@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.0.5 (2026-06-23)
+
+### Bug Fixes
+
+- **citations:** copy bibliography into temp dir so Typst PDF export resolves it ([#3](https://github.com/dsebastien/obsidian-book-exporter/issues/3))
+
 ## 0.0.4 (2026-05-18)
 
 ### Bug Fixes
