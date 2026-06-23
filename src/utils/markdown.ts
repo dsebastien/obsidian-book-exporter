@@ -66,6 +66,52 @@ export function stripSkippedSections(body: string, skip: string[]): string {
     return out.join('\n')
 }
 
+/**
+ * Removes Obsidian `%% … %%` comments from `body`, including comments that
+ * span multiple lines. Fenced code blocks are preserved verbatim — a `%%`
+ * inside a code fence is left untouched. Comment delimiters are matched even
+ * mid-line (`text %% note %% more` → `text  more`); a multi-line comment's
+ * interior lines collapse to blank lines so surrounding block structure is
+ * kept.
+ *
+ * Replaces the previous per-line strip, which silently leaked any comment
+ * spanning more than one line (see issue #11).
+ */
+export function stripObsidianComments(body: string): string {
+    const lines = body.split(/\r?\n/)
+    let inFence = false
+    let inComment = false
+    const out: string[] = []
+
+    for (const line of lines) {
+        // A fence toggle only counts outside a comment.
+        if (!inComment && FENCE_RE.test(line)) {
+            inFence = !inFence
+            out.push(line)
+            continue
+        }
+        if (inFence) {
+            out.push(line)
+            continue
+        }
+
+        let result = ''
+        let i = 0
+        while (i < line.length) {
+            if (line.startsWith('%%', i)) {
+                inComment = !inComment
+                i += 2
+                continue
+            }
+            if (!inComment) result += line[i]
+            i++
+        }
+        out.push(result)
+    }
+
+    return out.join('\n')
+}
+
 const HR_RE = /^\s*-{3,}\s*$/
 
 /**
