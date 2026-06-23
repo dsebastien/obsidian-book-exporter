@@ -103,8 +103,9 @@ export class ManuscriptCompiler {
         const manuscriptPath = path.join(tempDir, 'manuscript.md')
         await fs.writeFile(manuscriptPath, parts.join('\n').trim() + '\n', 'utf8')
 
+        const citationPaths = await copyCitationAssets(book, tempDir)
         const metadataPath = path.join(tempDir, 'metadata.yaml')
-        await fs.writeFile(metadataPath, buildMetadataYaml(book), 'utf8')
+        await fs.writeFile(metadataPath, buildMetadataYaml(book, citationPaths), 'utf8')
 
         return { manuscriptPath, resourcesDir, tempDir, metadataPath }
     }
@@ -706,7 +707,68 @@ async function replaceAsync(
 /* metadata YAML                                                       */
 /* ------------------------------------------------------------------ */
 
-export function buildMetadataYaml(book: ParsedBook): string {
+/**
+ * Temp-dir-relative paths of the citation resources, produced by
+ * {@link copyCitationAssets}. Empty when the manifest declares no
+ * bibliography.
+ */
+export interface CitationPaths {
+    /** Relative path of the bibliography copy, e.g. `references.bib`. */
+    bibliography?: string
+    /** Relative path of the CSL stylesheet copy, e.g. `apa.csl`. */
+    csl?: string
+}
+
+/**
+ * Copies the bibliography and CSL files (resolved to absolute filesystem
+ * paths by the parser) into `tempDir` and returns their temp-dir-relative
+ * paths.
+ *
+ * Why copy instead of writing the absolute path: Pandoc's default Typst
+ * template emits a native `#bibliography("…")` call (and
+ * `#set bibliography(style: "…")`) from the `bibliography:`/`csl:` metadata
+ * fields — even when `--citeproc` is active, in which case that native
+ * bibliography renders empty (citeproc consumes the citations) and the
+ * formatted reference list comes from citeproc instead. Typst resolves those
+ * paths against the project root (the manuscript's directory == `tempDir`)
+ * and refuses to read files outside it, so an absolute vault path becomes
+ * `<tempDir>/<abs path>` and fails with "file not found" — surfacing as
+ * Pandoc's generic "Error 43" during PDF export. EPUB is unaffected because
+ * its writer has no native bibliography directive. Citeproc itself resolves
+ * relative paths against Pandoc's working directory, which the runner sets to
+ * `tempDir`, so a temp-dir-relative path works for both the Typst template
+ * and citeproc (and every output format). See issue #2.
+ *
+ * Falls back to the original absolute path when the copy fails (e.g. the
+ * file no longer exists) so the downstream pandoc error stays meaningful.
+ */
+export async function copyCitationAssets(
+    book: ParsedBook,
+    tempDir: string
+): Promise<CitationPaths> {
+    const result: CitationPaths = {}
+    const { bibliographyPath, cslPath } = book.metadata
+    if (bibliographyPath !== undefined) {
+        result.bibliography = await copyCitationAsset(bibliographyPath, tempDir)
+    }
+    if (cslPath !== undefined) {
+        result.csl = await copyCitationAsset(cslPath, tempDir)
+    }
+    return result
+}
+
+async function copyCitationAsset(absPath: string, tempDir: string): Promise<string> {
+    const safeName = sanitizeAssetName(path.basename(absPath))
+    const dest = path.join(tempDir, safeName)
+    try {
+        await fs.copyFile(absPath, dest)
+        return safeName
+    } catch {
+        return absPath
+    }
+}
+
+export function buildMetadataYaml(book: ParsedBook, citations: CitationPaths = {}): string {
     const m = book.metadata
     const lines: string[] = ['---']
     lines.push(`title: ${yamlString(m.title)}`)
@@ -726,11 +788,13 @@ export function buildMetadataYaml(book: ParsedBook): string {
         lines.push('subject:')
         for (const s of m.subject) lines.push(`  - ${yamlString(s)}`)
     }
-    if (m.bibliographyPath !== undefined) {
-        lines.push(`bibliography: ${yamlString(m.bibliographyPath)}`)
+    const bibliography = citations.bibliography ?? m.bibliographyPath
+    if (bibliography !== undefined) {
+        lines.push(`bibliography: ${yamlString(bibliography)}`)
     }
-    if (m.cslPath !== undefined) {
-        lines.push(`csl: ${yamlString(m.cslPath)}`)
+    const csl = citations.csl ?? m.cslPath
+    if (csl !== undefined) {
+        lines.push(`csl: ${yamlString(csl)}`)
     }
     lines.push('---', '')
     return lines.join('\n')
