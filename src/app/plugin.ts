@@ -4,7 +4,7 @@ import { produce, type Draft } from 'immer'
 import { DEFAULT_SETTINGS, type PluginSettings } from './types/plugin-settings.intf'
 import { BookExporterSettingTab } from './settings/settings-tab'
 import { registerCommands } from './commands/commands'
-import { log } from '../utils/log'
+import { log, setDebugLogging } from '../utils/log'
 import { probeBinary } from '../utils/binary-probe'
 import { buildSpawnEnv } from '../utils/spawn-env'
 import { PreviewTempDirs } from '../utils/temp-dirs'
@@ -98,6 +98,7 @@ export class BookExporterPlugin extends Plugin {
                 ;(draft as Record<string, unknown>)[key] = value
             }
         })
+        setDebugLogging(this.settings.debug)
     }
 
     async saveSettings(): Promise<void> {
@@ -109,6 +110,7 @@ export class BookExporterPlugin extends Plugin {
      */
     async updateSettings(mutator: (draft: Draft<PluginSettings>) => void): Promise<void> {
         this.settings = produce(this.settings, mutator)
+        setDebugLogging(this.settings.debug)
         await this.saveSettings()
     }
 }
