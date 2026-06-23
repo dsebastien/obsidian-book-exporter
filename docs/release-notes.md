@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.0.6 (2026-06-23)
+
+### Bug Fixes
+
+- **citations:** render Typst PDF citations via citeproc only ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#4](https://github.com/dsebastien/obsidian-book-exporter/issues/4))
+
 ## 0.0.5 (2026-06-23)
 
 ### Bug Fixes
