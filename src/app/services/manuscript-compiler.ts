@@ -699,10 +699,23 @@ function formatExternalEmbed(url: string, label: string | undefined): string {
     return `[${text}](${url})`
 }
 
+/**
+ * Maps a video URL to a friendly platform label, or `null` for non-video
+ * URLs. Matches on the parsed hostname (so the scheme prefix `https://` does
+ * not defeat the match — see issue #23) and accepts any subdomain
+ * (`www.`, `m.`, …).
+ */
 function videoPlatformFromUrl(url: string): string | null {
-    if (/(?:^|\.)youtube\.com\/|(?:^|\.)youtu\.be\//i.test(url)) return 'YouTube'
-    if (/(?:^|\.)vimeo\.com\//i.test(url)) return 'Vimeo'
-    if (/(?:^|\.)loom\.com\//i.test(url)) return 'Loom'
+    let host: string
+    try {
+        host = new URL(url).hostname.toLowerCase()
+    } catch {
+        return null
+    }
+    const isHost = (domain: string): boolean => host === domain || host.endsWith(`.${domain}`)
+    if (isHost('youtube.com') || isHost('youtu.be')) return 'YouTube'
+    if (isHost('vimeo.com')) return 'Vimeo'
+    if (isHost('loom.com')) return 'Loom'
     return null
 }
 

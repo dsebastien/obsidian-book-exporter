@@ -135,6 +135,30 @@ describe('BodyTransformer markup rewriting', () => {
 
         expect(out).toBe('[Watch on YouTube](https://www.youtube.com/watch?v=abc)')
     })
+
+    it('labels scheme-prefixed video hosts without a subdomain (issue #23)', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+        const cases: [string, string][] = [
+            ['https://youtu.be/abc', 'Watch on YouTube'],
+            ['https://youtube.com/watch?v=abc', 'Watch on YouTube'],
+            ['https://vimeo.com/123', 'Watch on Vimeo'],
+            ['https://www.loom.com/share/xyz', 'Watch on Loom']
+        ]
+        for (const [url, label] of cases) {
+            const out = await bt.transform(`![[${url}]]`, makeFile('n.md'))
+            expect(out).toBe(`[${label}](${url})`)
+        }
+    })
+
+    it('leaves a non-video remote embed as a plain url link', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+
+        const out = await bt.transform('![[https://example.com/page]]', makeFile('n.md'))
+
+        expect(out).toBe('[https://example.com/page](https://example.com/page)')
+    })
 })
 
 describe('BodyTransformer note-embed expansion', () => {
