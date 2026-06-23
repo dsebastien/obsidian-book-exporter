@@ -9,6 +9,7 @@ import type {
 } from '../domain/book-manifest.intf'
 import type { PluginSettings } from '../types/plugin-settings.intf'
 import {
+    FENCE_RE,
     convertThematicBreaksToPageBreaks,
     stripFrontmatter,
     stripObsidianComments,
@@ -365,8 +366,6 @@ const PAGE_BREAK_PART = [
     '```',
     ''
 ].join('\n')
-
-const FENCE_RE = /^\s*(```|~~~)/
 
 function collectLevels(sections: BookSection[]): number[] {
     const levels = new Set<number>()
