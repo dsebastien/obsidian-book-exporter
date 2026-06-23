@@ -70,7 +70,8 @@ export class BookExporter {
 
     /**
      * Resolves the output directory. Per-book override beats settings default.
-     * Both are absolute filesystem paths; `~`/`~user` is expanded.
+     * The value must resolve to an absolute filesystem path; a leading `~` or
+     * `~/` is expanded to the user's home directory (see {@link expandHome}).
      * Throws when neither is set so the user gets a clear, actionable error
      * instead of a Pandoc failure.
      */
@@ -94,6 +95,13 @@ export class BookExporter {
     }
 }
 
+/**
+ * Expands a leading `~` (alone) or `~/` to the current user's home directory.
+ * Other forms — including `~otheruser/…` — are returned unchanged; the plugin
+ * does not resolve another user's home (`resolveOutputDir` then rejects them
+ * as non-absolute, with a clear message). Any path without a leading tilde is
+ * returned verbatim.
+ */
 export function expandHome(p: string): string {
     if (p === '~') return os.homedir()
     if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2))
