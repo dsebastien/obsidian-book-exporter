@@ -3,7 +3,13 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { promises as fs } from 'node:fs'
 import type { BookMetadata, ParsedBook } from '../domain/book-manifest.intf'
-import { buildMetadataYaml, copyCitationAssets, CITEPROC_TYPST_FILTER } from './manuscript-compiler'
+import {
+    buildMetadataYaml,
+    copyCitationAssets,
+    CITEPROC_TYPST_FILTER,
+    buildTypstCoverHeader,
+    copyCoverAsset
+} from './manuscript-compiler'
 
 function makeBook(metadata: Partial<BookMetadata> = {}): ParsedBook {
     return {
@@ -113,5 +119,59 @@ describe('CITEPROC_TYPST_FILTER', () => {
         expect(CITEPROC_TYPST_FILTER).toContain('function Meta(meta)')
         expect(CITEPROC_TYPST_FILTER).toContain('meta.bibliography = nil')
         expect(CITEPROC_TYPST_FILTER).toContain('meta.csl = nil')
+    })
+})
+
+describe('buildTypstCoverHeader (issue #29)', () => {
+    it('emits a zero-margin full-bleed image page', () => {
+        const out = buildTypstCoverHeader('cover.png')
+        expect(out).toContain('#page(margin: 0pt)[')
+        expect(out).toContain('#image("cover.png", width: 100%, height: 100%, fit: "cover")')
+    })
+
+    it('escapes quotes and backslashes in the path', () => {
+        const out = buildTypstCoverHeader('a"b\\c.png')
+        expect(out).toContain('#image("a\\"b\\\\c.png"')
+    })
+})
+
+describe('copyCoverAsset (issue #29)', () => {
+    it('copies a local cover into the temp dir and returns its relative name', async () => {
+        const src = await makeTempDir()
+        const tempDir = await makeTempDir()
+        const cover = path.join(src, 'mybook cover.png')
+        await fs.writeFile(cover, 'PNGDATA', 'utf8')
+
+        const rel = await copyCoverAsset(cover, tempDir)
+
+        expect(rel).toBe('mybook_cover.png') // sanitized
+        expect(await fs.readFile(path.join(tempDir, 'mybook_cover.png'), 'utf8')).toBe('PNGDATA')
+    })
+
+    it('reuses a cover already inside the temp dir without copying onto itself', async () => {
+        const tempDir = await makeTempDir()
+        const cover = path.join(tempDir, 'cover.png')
+        await fs.writeFile(cover, 'PNGDATA', 'utf8')
+
+        const rel = await copyCoverAsset(cover, tempDir)
+
+        expect(rel).toBe('cover.png')
+        expect(await fs.readFile(path.join(tempDir, 'cover.png'), 'utf8')).toBe('PNGDATA')
+    })
+
+    it('returns undefined for a remote (http) cover', async () => {
+        const tempDir = await makeTempDir()
+        expect(await copyCoverAsset('https://example.com/c.png', tempDir)).toBeUndefined()
+    })
+
+    it('returns undefined when there is no cover', async () => {
+        const tempDir = await makeTempDir()
+        expect(await copyCoverAsset(undefined, tempDir)).toBeUndefined()
+    })
+
+    it('returns undefined when the source file is missing', async () => {
+        const tempDir = await makeTempDir()
+        const missing = path.join(tempDir, 'nope', 'cover.png')
+        expect(await copyCoverAsset(missing, tempDir)).toBeUndefined()
     })
 })

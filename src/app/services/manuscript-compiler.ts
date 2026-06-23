@@ -31,6 +31,12 @@ export interface CompiledManuscript {
      * manifest declares no bibliography. See {@link CITEPROC_TYPST_FILTER}.
      */
     citationFilterPath?: string
+    /**
+     * Absolute path of the Typst `--include-in-header` file that renders a
+     * full-bleed cover as the first page, or `undefined` when the manifest
+     * declares no (local) cover. See {@link buildTypstCoverHeader}.
+     */
+    coverHeaderPath?: string
 }
 
 /**
@@ -121,7 +127,21 @@ export class ManuscriptCompiler {
             await fs.writeFile(citationFilterPath, CITEPROC_TYPST_FILTER, 'utf8')
         }
 
-        return { manuscriptPath, resourcesDir, tempDir, metadataPath, citationFilterPath }
+        let coverHeaderPath: string | undefined
+        const coverRel = await copyCoverAsset(book.metadata.coverPath, tempDir)
+        if (coverRel !== undefined) {
+            coverHeaderPath = path.join(tempDir, 'cover-header.typ')
+            await fs.writeFile(coverHeaderPath, buildTypstCoverHeader(coverRel), 'utf8')
+        }
+
+        return {
+            manuscriptPath,
+            resourcesDir,
+            tempDir,
+            metadataPath,
+            citationFilterPath,
+            coverHeaderPath
+        }
     }
 
     private async renderSection(
@@ -839,6 +859,55 @@ export async function copyCitationAssets(
         result.csl = await copyCitationAsset(cslPath, tempDir)
     }
     return result
+}
+
+/**
+ * Builds the Typst `--include-in-header` snippet that renders a full-bleed
+ * cover as the very first page. Pandoc's Typst template wraps the body in
+ * `#show: doc => conf(...)`, so anything emitted *before* that show rule (which
+ * is exactly where `--include-in-header` lands) renders ahead of the generated
+ * title page. The page gets zero margin and the image fills it (`fit: "cover"`
+ * crops to the page rather than letterboxing); the scoped `#page(margin: 0pt)`
+ * does not affect later pages. See issue #29.
+ */
+export function buildTypstCoverHeader(relativeImagePath: string): string {
+    return [
+        '#page(margin: 0pt)[',
+        `  #image(${typstStringLiteral(relativeImagePath)}, width: 100%, height: 100%, fit: "cover")`,
+        ']',
+        ''
+    ].join('\n')
+}
+
+/** Escapes a string for use as a Typst string literal. */
+function typstStringLiteral(value: string): string {
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+/**
+ * Copies the cover image into `tempDir` (so Typst's sandbox can read it) and
+ * returns its temp-dir-relative name. Returns `undefined` when there is no
+ * cover, when it is still an `http(s)` URL (e.g. the preview command, which
+ * does not download remote covers), or when the copy fails. A cover already
+ * inside `tempDir` (a remote cover materialized by the exporter) is reused in
+ * place.
+ */
+export async function copyCoverAsset(
+    coverPath: string | undefined,
+    tempDir: string
+): Promise<string | undefined> {
+    if (coverPath === undefined || /^https?:\/\//i.test(coverPath)) return undefined
+    const safeName = sanitizeAssetName(path.basename(coverPath))
+    if (safeName.length === 0) return undefined
+    const dest = path.join(tempDir, safeName)
+    try {
+        if (path.resolve(coverPath) !== path.resolve(dest)) {
+            await fs.copyFile(coverPath, dest)
+        }
+        return safeName
+    } catch {
+        return undefined
+    }
 }
 
 async function copyCitationAsset(absPath: string, tempDir: string): Promise<string> {

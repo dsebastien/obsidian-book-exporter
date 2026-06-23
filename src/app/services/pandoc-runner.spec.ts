@@ -125,3 +125,27 @@ describe('buildArgs citation handling (issue #2)', () => {
         expect(args).toContain('--lua-filter=/tmp/book/citeproc-typst.lua')
     })
 })
+
+describe('buildArgs cover handling (issue #29)', () => {
+    const withCover = makeCompiled({ coverHeaderPath: '/tmp/book/cover-header.typ' })
+
+    it('includes the Typst cover header for a Typst PDF with a cover', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'typst' }))
+        const args = buildArgs(runner, 'pdf', makeBook(), withCover, '/out/book.pdf')
+        expect(args).toContain('--include-in-header=/tmp/book/cover-header.typ')
+    })
+
+    it('does not include a Typst cover header for LaTeX engines', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'xelatex' }))
+        const args = buildArgs(runner, 'pdf', makeBook(), withCover, '/out/book.pdf')
+        expect(args.some((a) => a.startsWith('--include-in-header'))).toBe(false)
+    })
+
+    it('does not include a cover header for EPUB or when no cover is compiled', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'typst' }))
+        const epub = buildArgs(runner, 'epub', makeBook(), withCover, '/out/book.epub')
+        expect(epub.some((a) => a.startsWith('--include-in-header'))).toBe(false)
+        const noCover = buildArgs(runner, 'pdf', makeBook(), makeCompiled(), '/out/book.pdf')
+        expect(noCover.some((a) => a.startsWith('--include-in-header'))).toBe(false)
+    })
+})
