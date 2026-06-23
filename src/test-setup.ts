@@ -25,5 +25,9 @@ void mock.module('obsidian', () => ({
     AbstractInputSuggest: class AbstractInputSuggest {},
     SearchComponent: class SearchComponent {},
     debounce: (fn: (...args: unknown[]) => unknown) => fn,
-    setIcon: () => {}
+    setIcon: () => {},
+    // Network helper used by the exporter to download remote covers. Tests
+    // never exercise the network path, so a rejecting stub is enough to keep
+    // the named import resolvable.
+    requestUrl: () => Promise.reject(new Error('requestUrl is not available in tests'))
 }))
