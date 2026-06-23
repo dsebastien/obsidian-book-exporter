@@ -11,6 +11,7 @@ import type { PluginSettings } from '../types/plugin-settings.intf'
 import {
     convertThematicBreaksToPageBreaks,
     stripFrontmatter,
+    stripObsidianComments,
     stripSkippedSections
 } from '../../utils/markdown'
 
@@ -463,7 +464,9 @@ export class BodyTransformer {
         depth = 0,
         visited?: Set<string>
     ): Promise<string> {
-        const lines = content.split(/\r?\n/)
+        // Strip %% comments up front (fence-aware, handles multi-line) so the
+        // rest of the pass never sees comment text — see issue #11.
+        const lines = stripObsidianComments(content).split(/\r?\n/)
         const out: string[] = []
         let inFence = false
         let pendingCallout: { kind: string; title: string } | null = null
@@ -503,8 +506,7 @@ export class BodyTransformer {
                 pendingCallout = null
             }
 
-            const stripped = stripObsidianComments(line)
-            const withImages = await this.rewriteImages(stripped, source, depth, visited)
+            const withImages = await this.rewriteImages(line, source, depth, visited)
             const withWikilinks = this.rewriteWikilinks(withImages, source)
             out.push(withWikilinks)
         }
@@ -721,10 +723,6 @@ function matchCalloutBody(line: string): string | null {
     if (line.length === 0) return ''
     if (!line.startsWith('>')) return null
     return line.replace(/^>\s?/, '')
-}
-
-function stripObsidianComments(line: string): string {
-    return line.replace(/%%[\s\S]*?%%/g, '')
 }
 
 async function replaceAsync(
