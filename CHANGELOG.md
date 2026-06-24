@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.8...0.1.0) (2026-06-24)
+
+### Features
+
+* **plugin:** add ribbon icon and context-menu export action ([#38](https://github.com/dsebastien/obsidian-book-exporter/issues/38)) ([3018fea](https://github.com/dsebastien/obsidian-book-exporter/commit/3018fea33b49655f86770de600f6e3047bc7294e))
+* **plugin:** classify common pandoc Error 43 stderr ([#35](https://github.com/dsebastien/obsidian-book-exporter/issues/35)) ([f8754a1](https://github.com/dsebastien/obsidian-book-exporter/commit/f8754a1a68fc08c97047c4aa97a52a12cf381d22))
+* **plugin:** expose PDF page setup options ([#40](https://github.com/dsebastien/obsidian-book-exporter/issues/40)) ([f65003c](https://github.com/dsebastien/obsidian-book-exporter/commit/f65003c31d60ab09b22dff6f0b70523d0d6a6072)), closes [#set](https://github.com/dsebastien/obsidian-book-exporter/issues/set)
+* **plugin:** preflight-probe every PDF engine, not just typst ([4afa10f](https://github.com/dsebastien/obsidian-book-exporter/commit/4afa10fde029c396394eb43fd7e39faf8086f4d3))
+* **plugin:** properly support weasyprint via HTML/CSS ([#36](https://github.com/dsebastien/obsidian-book-exporter/issues/36)) ([830eebd](https://github.com/dsebastien/obsidian-book-exporter/commit/830eebdb18714a120c60526a87907e6fd5bdb5cd)), closes [#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29) [#40](https://github.com/dsebastien/obsidian-book-exporter/issues/40)
+
+### Bug Fixes
+
+* **plugin:** drop half-supported HTML PDF engines ([#36](https://github.com/dsebastien/obsidian-book-exporter/issues/36)) ([7a77eb7](https://github.com/dsebastien/obsidian-book-exporter/commit/7a77eb745f2cfa7dc088d89e8fb1ba1256f98b4f)), closes [#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29)
+
 ## [0.0.8](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.7...0.0.8) (2026-06-24)
 
 ### Features
@@ -82,6 +96,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
