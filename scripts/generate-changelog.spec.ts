@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { unlinkSync, writeFileSync } from 'node:fs'
+import { neutraliseMentionLinks } from './generate-changelog.ts'
 
 const TEST_CHANGELOG = 'CHANGELOG.test.md'
 
@@ -72,5 +73,31 @@ describe('changelog format', () => {
         expect(sampleEntry).toMatch(/^## \[\d+\.\d+\.\d+\]/)
         expect(sampleEntry).toContain('### Added')
         expect(sampleEntry).toContain('### Fixed')
+    })
+})
+
+describe('neutraliseMentionLinks', () => {
+    test('rewrites a bogus self-referential @mention link into inline code', () => {
+        const input =
+            '* **typst:** neutralise stray [@citations](https://github.com/citations) when no bibliography is set'
+        const expected = '* **typst:** neutralise stray `@citations` when no bibliography is set'
+        expect(neutraliseMentionLinks(input)).toBe(expected)
+    })
+
+    test('handles http and multiple bogus mentions in one line', () => {
+        const input = 'see [@set](http://github.com/set) and [@foo-bar](https://github.com/foo-bar)'
+        expect(neutraliseMentionLinks(input)).toBe('see `@set` and `@foo-bar`')
+    })
+
+    test('leaves real issue/commit/compare links untouched', () => {
+        const input =
+            '* feat ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([e855340](https://github.com/dsebastien/obsidian-book-exporter/commit/e855340))'
+        expect(neutraliseMentionLinks(input)).toBe(input)
+    })
+
+    test('does not touch a mention link whose text differs from the URL path', () => {
+        // Genuine maintainer attribution links keep their original form.
+        const input = 'thanks [@dsebastien](https://github.com/dsebastien-other)'
+        expect(neutraliseMentionLinks(input)).toBe(input)
     })
 })
