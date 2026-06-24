@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, type PluginSettings } from './types/plugin-settings.i
 import { BookExporterSettingTab } from './settings/settings-tab'
 import { registerCommands } from './commands/commands'
 import { log, setDebugLogging } from '../utils/log'
-import { probeBinary } from '../utils/binary-probe'
+import { probeBinary, resolveEngineBinary, ENGINE_INSTALL_HINT } from '../utils/binary-probe'
 import { buildSpawnEnv } from '../utils/spawn-env'
 import { PreviewTempDirs } from '../utils/temp-dirs'
 
@@ -33,12 +33,12 @@ export class BookExporterPlugin extends Plugin {
     }
 
     /**
-     * Verifies that pandoc (and the configured PDF engine, when it is
-     * something we can probe — `typst` ships as a single CLI; LaTeX
-     * engines vary too much to probe meaningfully) are reachable on
-     * `$PATH`. Surfaces failures via Obsidian `Notice`. Never throws —
-     * the export commands themselves still fail loudly if a binary turns
-     * out to be missing later (e.g. uninstalled after plugin load).
+     * Verifies that pandoc and the configured default PDF engine are reachable
+     * on `$PATH` (or at the pinned path), so a missing dependency surfaces as a
+     * clear Notice on load instead of a cryptic error mid-export. Every engine
+     * is probed — typst, weasyprint, xelatex, tectonic — via `<bin> --version`,
+     * using the same augmented `$PATH` the export will use. Never throws — the
+     * export commands still fail loudly if a binary disappears later.
      */
     private async runPreflightCheck(): Promise<void> {
         const env = buildSpawnEnv(this.settings.extraPath)
@@ -57,27 +57,19 @@ export class BookExporterPlugin extends Plugin {
             log(`Pandoc OK: ${pandoc.versionLine ?? 'reachable'}`, 'debug')
         }
 
-        // Only probe Typst — the LaTeX engines (xelatex/tectonic/lualatex)
-        // are sensitive to environment, $PATH munging on macOS GUI apps,
-        // missing TeX Live packages etc. A naive --version probe would
-        // produce false negatives; we let pandoc surface those errors at
-        // export time.
-        if (this.settings.defaultPdfEngine === 'typst') {
-            const typstBin =
-                this.settings.pdfEnginePath.trim().length > 0
-                    ? this.settings.pdfEnginePath.trim()
-                    : 'typst'
-            const typst = await probeBinary(typstBin, { env })
-            if (!typst.ok) {
-                const where = typstBin === 'typst' ? 'on $PATH' : `at ${typstBin}`
-                new Notice(
-                    `Book Exporter: typst not reachable ${where}. PDF export will fail. Install from https://typst.app, set Settings → Book Exporter → PDF engine path, or pick a different engine. (${typst.error ?? 'not found'})`,
-                    10000
-                )
-                log(`Typst probe failed: ${typst.error ?? 'unknown'}`, 'warn')
-            } else {
-                log(`Typst OK: ${typst.versionLine ?? 'reachable'}`, 'debug')
-            }
+        const engine = this.settings.defaultPdfEngine
+        const engineBin = resolveEngineBinary(engine, this.settings.pdfEnginePath)
+        const probe = await probeBinary(engineBin, { env })
+        if (!probe.ok) {
+            const where = engineBin === engine ? 'on $PATH' : `at ${engineBin}`
+            const hint = ENGINE_INSTALL_HINT[engine]
+            new Notice(
+                `Book Exporter: PDF engine "${engine}" not reachable ${where}. PDF export will fail until you ${hint ?? 'install it'}, set Settings → Book Exporter → PDF engine path, or pick a different engine. (${probe.error ?? 'not found'})`,
+                10000
+            )
+            log(`PDF engine probe failed (${engine}): ${probe.error ?? 'unknown'}`, 'warn')
+        } else {
+            log(`PDF engine OK (${engine}): ${probe.versionLine ?? 'reachable'}`, 'debug')
         }
     }
 

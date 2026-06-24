@@ -1,5 +1,29 @@
 import { spawn } from 'node:child_process'
+import * as path from 'node:path'
 import type { SpawnEnv } from './spawn-env'
+
+/**
+ * Resolves the binary to probe / invoke for a PDF engine. When the user has
+ * pinned a `pdfEnginePath` whose basename matches the selected engine (so a
+ * typst path isn't forwarded to a weasyprint export), that full path is used;
+ * otherwise the bare engine name is returned and resolved via `$PATH`. Mirrors
+ * the resolution `pickPdfEngineArg` applies when building the pandoc argv.
+ */
+export function resolveEngineBinary(engine: string, pdfEnginePath: string): string {
+    const configured = pdfEnginePath.trim()
+    if (configured.length === 0) return engine
+    const base = path.basename(configured).toLowerCase()
+    const e = engine.toLowerCase()
+    return base === e || base.startsWith(`${e}.`) ? configured : engine
+}
+
+/** Per-engine install hint shown when a PDF engine isn't reachable on load. */
+export const ENGINE_INSTALL_HINT: Record<string, string> = {
+    typst: 'install from https://typst.app',
+    weasyprint: 'install with `pip install weasyprint`',
+    xelatex: 'install a TeX distribution (TeX Live / MacTeX)',
+    tectonic: 'install from https://tectonic-typesetting.github.io'
+}
 
 export interface BinaryProbeResult {
     ok: boolean
