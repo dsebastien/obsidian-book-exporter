@@ -36,7 +36,14 @@ export interface CompiledManuscript {
      * full-bleed cover as the first page, or `undefined` when the manifest
      * declares no (local) cover. See {@link buildTypstCoverHeader}.
      */
-    coverHeaderPath?: string
+    coverHeaderTypstPath?: string
+    /**
+     * Absolute path of the LaTeX `--include-in-header` file that renders a
+     * full-bleed cover as the first page (xelatex/tectonic), or `undefined`
+     * when the manifest declares no (local) cover. See
+     * {@link buildLatexCoverHeader}.
+     */
+    coverHeaderLatexPath?: string
 }
 
 /**
@@ -128,11 +135,14 @@ export class ManuscriptCompiler {
         const citationFilterPath = path.join(tempDir, 'citeproc-typst.lua')
         await fs.writeFile(citationFilterPath, CITEPROC_TYPST_FILTER, 'utf8')
 
-        let coverHeaderPath: string | undefined
+        let coverHeaderTypstPath: string | undefined
+        let coverHeaderLatexPath: string | undefined
         const coverRel = await copyCoverAsset(book.metadata.coverPath, tempDir)
         if (coverRel !== undefined) {
-            coverHeaderPath = path.join(tempDir, 'cover-header.typ')
-            await fs.writeFile(coverHeaderPath, buildTypstCoverHeader(coverRel), 'utf8')
+            coverHeaderTypstPath = path.join(tempDir, 'cover-header.typ')
+            await fs.writeFile(coverHeaderTypstPath, buildTypstCoverHeader(coverRel), 'utf8')
+            coverHeaderLatexPath = path.join(tempDir, 'cover-header.tex')
+            await fs.writeFile(coverHeaderLatexPath, buildLatexCoverHeader(coverRel), 'utf8')
         }
 
         return {
@@ -141,7 +151,8 @@ export class ManuscriptCompiler {
             tempDir,
             metadataPath,
             citationFilterPath,
-            coverHeaderPath
+            coverHeaderTypstPath,
+            coverHeaderLatexPath
         }
     }
 
@@ -889,6 +900,32 @@ export function buildTypstCoverHeader(relativeImagePath: string): string {
 /** Escapes a string for use as a Typst string literal. */
 function typstStringLiteral(value: string): string {
     return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+/**
+ * Builds the LaTeX `--include-in-header` snippet (for the xelatex/tectonic
+ * engines) that renders a full-bleed cover as the very first page. Pandoc's
+ * LaTeX template runs `\maketitle` before the body and `--include-before-body`
+ * lands *after* it, so the cover is injected via an `\AtBeginDocument` hook —
+ * which fires before `\maketitle` — using `eso-pic` to paint the image across
+ * the whole sheet (edge to edge), then `\clearpage` to the title page. See
+ * issue #29. (The book class places the title page on a recto, so a blank
+ * verso may sit between the cover and the title page — conventional for print.)
+ */
+export function buildLatexCoverHeader(relativeImagePath: string): string {
+    // The asset name is already sanitized to [A-Za-z0-9._-]; only braces/
+    // backslashes would be problematic in a LaTeX argument, and those can't
+    // occur. Wrap in braces to be safe.
+    return [
+        '\\usepackage{graphicx}',
+        '\\usepackage{eso-pic}',
+        '\\AtBeginDocument{%',
+        '  \\thispagestyle{empty}%',
+        `  \\AddToShipoutPictureBG*{\\put(0,0){\\includegraphics[width=\\paperwidth,height=\\paperheight]{${relativeImagePath}}}}%`,
+        '  \\mbox{}\\clearpage%',
+        '}',
+        ''
+    ].join('\n')
 }
 
 /**
