@@ -87,12 +87,17 @@ export class PandocRunner {
             if (engine === 'typst' && compiled.citationFilterPath !== undefined) {
                 args.push(`--lua-filter=${compiled.citationFilterPath}`)
             }
-            // Full-bleed cover page for Typst PDFs. The header file renders the
-            // cover before Pandoc's generated title page (issue #29). EPUB has
-            // its own cover via --epub-cover-image; LaTeX engines are not yet
-            // covered.
-            if (engine === 'typst' && compiled.coverHeaderPath !== undefined) {
-                args.push(`--include-in-header=${compiled.coverHeaderPath}`)
+            // Full-bleed cover page. The header file renders the cover before
+            // Pandoc's generated title page (issue #29). EPUB has its own cover
+            // via --epub-cover-image; the HTML-based engines (weasyprint,
+            // wkhtmltopdf) are not covered.
+            if (engine === 'typst' && compiled.coverHeaderTypstPath !== undefined) {
+                args.push(`--include-in-header=${compiled.coverHeaderTypstPath}`)
+            } else if (
+                (engine === 'xelatex' || engine === 'tectonic') &&
+                compiled.coverHeaderLatexPath !== undefined
+            ) {
+                args.push(`--include-in-header=${compiled.coverHeaderLatexPath}`)
             }
             const extras = book.overrides.pandocExtraArgs ?? []
             if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {

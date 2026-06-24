@@ -8,6 +8,7 @@ import {
     copyCitationAssets,
     CITEPROC_TYPST_FILTER,
     buildTypstCoverHeader,
+    buildLatexCoverHeader,
     copyCoverAsset
 } from './manuscript-compiler'
 
@@ -132,6 +133,18 @@ describe('buildTypstCoverHeader (issue #29)', () => {
     it('escapes quotes and backslashes in the path', () => {
         const out = buildTypstCoverHeader('a"b\\c.png')
         expect(out).toContain('#image("a\\"b\\\\c.png"')
+    })
+})
+
+describe('buildLatexCoverHeader (issue #29)', () => {
+    it('emits an AtBeginDocument full-bleed eso-pic cover', () => {
+        const out = buildLatexCoverHeader('cover.png')
+        expect(out).toContain('\\usepackage{eso-pic}')
+        expect(out).toContain('\\AtBeginDocument{')
+        expect(out).toContain(
+            '\\includegraphics[width=\\paperwidth,height=\\paperheight]{cover.png}'
+        )
+        expect(out).toContain('\\clearpage')
     })
 })
 
