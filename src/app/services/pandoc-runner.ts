@@ -333,6 +333,51 @@ export interface RunProcessOptions {
     env?: SpawnEnv
 }
 
+/**
+ * Recognises common pandoc / Typst failure signatures in stderr and returns a
+ * one-line, actionable hint. Pandoc collapses many distinct errors into a
+ * single non-zero exit (Typst's generic "Error 43"), so the raw tail alone is
+ * hard to act on for users and maintainers alike (see issues #2, #35).
+ * Returns `null` when nothing matches, leaving the caller to show the raw
+ * tail unchanged. Ordered most-specific first.
+ */
+export function classifyPandocError(stderr: string): string | null {
+    const s = stderr.toLowerCase()
+
+    // Citation: a `@key` was used but no bibliography is present. Typst hard-
+    // errors here; our Lua filter normally prevents it (issue #2).
+    if (s.includes('does not contain a bibliography')) {
+        return 'A citation (`@key`) was used but no bibliography is set. Add a `bibliography:` field to the manifest frontmatter, or remove the stray `@token`.'
+    }
+    // Citation: the bibliography file format was not understood.
+    if (s.includes('unknown bibliography format') || s.includes('error parsing bibliography')) {
+        return "Bibliography format not recognised. Use a `.bib`, `.json`, or `.yaml` file for `bibliography:` — citeproc reads all three; Typst's native reader only takes `.bib`/`.yml`."
+    }
+    // Fonts: Typst needs a non-empty main font (Pandoc 3.6+).
+    if (s.includes('font fallback list must not be empty')) {
+        return 'No PDF main font is set. Set Settings → Book Exporter → PDF main font to a font installed on this machine (run `typst fonts` to list them).'
+    }
+    if (s.includes('unknown font family') || s.includes('unknown font')) {
+        return 'A configured font is not installed on this machine. Pick one reported by `typst fonts` in Settings → Book Exporter → PDF main/mono font.'
+    }
+    // Missing PDF engine (pandoc: "… not found. Please select a different
+    // --pdf-engine or install …").
+    if (s.includes('please select a different') || s.includes('--pdf-engine')) {
+        return 'The selected PDF engine could not be found. Install it, set Settings → Book Exporter → PDF engine path, or pick another engine.'
+    }
+    // Missing resource — usually an image.
+    if (
+        s.includes('file not found') ||
+        s.includes('does not exist') ||
+        s.includes('could not load') ||
+        s.includes('could not fetch') ||
+        s.includes('cannot find')
+    ) {
+        return 'A referenced file (often an image) could not be found. Check the path — remote `http(s)` images are not fetched for PDF, so embed a local copy instead.'
+    }
+    return null
+}
+
 export function runProcess(
     bin: string,
     args: string[],
@@ -354,7 +399,9 @@ export function runProcess(
                 return
             }
             const tail = stderr.split('\n').slice(-20).join('\n')
-            reject(new Error(`${bin} exited with code ${String(code)}\n${tail}`))
+            const lead = `${bin} exited with code ${String(code)}`
+            const hint = classifyPandocError(stderr)
+            reject(new Error(hint !== null ? `${lead}\nHint: ${hint}\n\n${tail}` : `${lead}\n${tail}`))
         })
     })
 }

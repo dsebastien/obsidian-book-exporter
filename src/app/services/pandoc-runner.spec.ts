@@ -13,7 +13,8 @@ import {
     pushPageSetupArgs,
     normaliseFontSize,
     typstPaper,
-    latexPaper
+    latexPaper,
+    classifyPandocError
 } from './pandoc-runner'
 import type { CompiledManuscript } from './manuscript-compiler'
 
@@ -303,5 +304,61 @@ describe('pushPageSetupArgs (issue #40)', () => {
         const epub = buildArgs(runner, 'epub', makeBook(), makeCompiled(), '/out/book.epub')
         expect(variableValues(epub).some((v) => v.startsWith('papersize'))).toBe(false)
         expect(epub.includes('-M')).toBe(false)
+    })
+})
+
+describe('classifyPandocError (issue #35)', () => {
+    it('flags a stray @citation with no bibliography', () => {
+        const hint = classifyPandocError(
+            'error: cited key was not found but document does not contain a bibliography'
+        )
+        expect(hint).toContain('bibliography:')
+        expect(hint).toContain('@token')
+    })
+
+    it('flags an unknown bibliography format', () => {
+        const hint = classifyPandocError('error: unknown bibliography format "csl-yaml"')
+        expect(hint).toContain('.bib')
+        expect(hint).toContain('citeproc')
+    })
+
+    it('flags an empty font fallback list', () => {
+        const hint = classifyPandocError(
+            'error: variable used in template `conf`: font fallback list must not be empty'
+        )
+        expect(hint).toContain('PDF main font')
+        expect(hint).toContain('typst fonts')
+    })
+
+    it('flags an unknown / missing font family', () => {
+        expect(classifyPandocError('error: unknown font family: "Noto Nope"')).toContain(
+            'typst fonts'
+        )
+    })
+
+    it('flags a missing PDF engine', () => {
+        const hint = classifyPandocError(
+            'pdflatex not found. Please select a different --pdf-engine or install pdflatex'
+        )
+        expect(hint).toContain('PDF engine')
+    })
+
+    it('flags a missing resource / image', () => {
+        const hint = classifyPandocError('error: file not found (searched at images/cover.png)')
+        expect(hint).toContain('image')
+        expect(hint).toContain('local copy')
+    })
+
+    it('matches case-insensitively', () => {
+        expect(
+            classifyPandocError('FONT FALLBACK LIST MUST NOT BE EMPTY')
+        ).toContain('PDF main font')
+    })
+
+    it('returns null for an unrecognised error (falls back to the raw tail)', () => {
+        expect(classifyPandocError('error: something entirely novel happened on line 7')).toBe(
+            null
+        )
+        expect(classifyPandocError('')).toBe(null)
     })
 })
