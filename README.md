@@ -164,6 +164,43 @@ The plugin **auto-detects the usual install locations** (`/opt/homebrew/bin`, `/
 - **Settings → Book Exporter → PDF engine path** — full path to the PDF engine (e.g. `/opt/homebrew/bin/typst` or `/Library/TeX/texbin/xelatex`). Forwarded to pandoc as `--pdf-engine=<path>`, so pandoc doesn't have to resolve the engine via `$PATH`.
 - **Settings → Book Exporter → Extra PATH directories** — colon-separated list of directories prepended to `$PATH` for the spawned pandoc process. Lets pandoc resolve its own helper binaries (`typst`, LaTeX packages, image converters, …) without setting each path individually. Example: `/opt/homebrew/bin:/Library/TeX/texbin:/usr/local/bin`.
 
+## Troubleshooting
+
+Exports run `pandoc` (and a PDF engine) as a child process. When something fails, the plugin shows a Notice with the failing format and the **tail of the engine's stderr** — that text is the real diagnosis. Open the developer console (**Ctrl/Cmd-Shift-I**) for the full output, and enable **Settings → Book Exporter → Verbose console logging** for the exact command line.
+
+### "Error 43" or an export that fails with no obvious reason
+
+`Error 43` is Typst's generic compilation-failure code — it is *not* the cause, just the exit status. The real message is in the lines above it in the console / Notice (e.g. a missing font, an unfetchable image, or a malformed table). Read the stderr tail first; almost every failure below shows up there.
+
+### "font fallback list must not be empty" / fonts look wrong
+
+Pandoc 3.6+ with the Typst engine **requires** a main font. If **Settings → Book Exporter → PDF main font** is empty (or names a font not installed on this machine), Typst aborts with `font fallback list must not be empty`.
+
+- Set **PDF main font** and **PDF mono font** to fonts that exist on the host. Run `typst fonts` to list what Typst can see — e.g. `Liberation Serif`, `New Computer Modern`, `Noto Serif` (body) and `Liberation Mono`, `DejaVu Sans Mono` (code).
+- Per book, override with `book_export.pandoc_extra_args: ['-V', 'mainfont=...']` — explicit args always win over the settings defaults.
+
+### "pandoc not found" / "typst not found" / "xelatex not found"
+
+The plugin couldn't launch the binary. Install the tool (see [External tools](#external-tools)), then make sure the plugin can find it:
+
+- Confirm it runs from a terminal (`pandoc --version`, `typst --version`).
+- On macOS, Obsidian launches with a stripped `$PATH` — see [macOS PATH issue](#macos-pandoc-not-found--typst-not-found--xelatex-not-found) for auto-detection and the explicit path settings.
+- On any OS you can set **Pandoc path**, **PDF engine path**, and **Extra PATH directories** in settings to point at the binaries directly.
+
+### Citations render as raw `@tokens` or the reference list is missing
+
+Citations are enabled automatically when the manifest frontmatter has a `bibliography:` field. Pandoc's citeproc then resolves `[@smith2020]`-style keys and appends a reference list.
+
+- `bibliography:` accepts a **`.bib`, `.json`, or `.yaml`** file (BibLaTeX or CSL-JSON/YAML), given as a vault-relative path, an absolute path, or an Obsidian `[[wikilink]]`. URLs are **not** supported — citation files must be local.
+- Add `csl:` (same path forms) to pick a citation style; pandoc has a sensible default otherwise.
+- If a `@token` shows up as literal text, that key wasn't found in the bibliography (or there is no `bibliography:` at all). With **no** bibliography, stray `@tokens` are intentionally rendered as plain text rather than failing the export — so check the key spelling and that the file resolves.
+
+### Images don't appear
+
+- **Local images** embedded with `![[image.png]]` are copied into the manuscript's `_resources/` folder and inlined automatically. Make sure the embed resolves in Obsidian first.
+- **Remote (`http(s)`) images** in note bodies can't be fetched by the Typst engine and would abort the export, so they're converted to a plain link instead of an inline image. Download the image into your vault and embed it locally if you need it printed.
+- The **cover** is the exception: `cover:` accepts an `http(s)` URL and is downloaded to the temp dir before pandoc runs.
+
 ## Status
 
 Pre-release. Unstable. See `documentation/plans/01-mvp.md` for the design and `documentation/history/` for the change log.
