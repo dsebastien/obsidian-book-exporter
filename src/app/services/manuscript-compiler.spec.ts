@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'bun:test'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { promises as fs } from 'node:fs'
-import type { BookMetadata, ParsedBook } from '../domain/book-manifest.intf'
+import type { BookExportOverrides, BookMetadata, ParsedBook } from '../domain/book-manifest.intf'
 import {
     buildMetadataYaml,
     copyCitationAssets,
@@ -10,6 +10,8 @@ import {
     buildTypstCoverHeader,
     buildLatexCoverHeader,
     buildTypstPreamble,
+    buildHtmlCover,
+    buildHtmlCss,
     copyCoverAsset
 } from './manuscript-compiler'
 import { DEFAULT_SETTINGS } from '../types/plugin-settings.intf'
@@ -211,5 +213,71 @@ describe('copyCoverAsset (issue #29)', () => {
         const tempDir = await makeTempDir()
         const missing = path.join(tempDir, 'nope', 'cover.png')
         expect(await copyCoverAsset(missing, tempDir)).toBeUndefined()
+    })
+})
+
+describe('buildHtmlCover (issue #36)', () => {
+    it('emits a .book-cover div referencing the relative image path', () => {
+        expect(buildHtmlCover('mybook_cover.png')).toBe(
+            '<div class="book-cover"><img src="mybook_cover.png" alt="" /></div>\n'
+        )
+    })
+
+    it('escapes HTML-significant characters in the path', () => {
+        expect(buildHtmlCover('a & "b".png')).toContain('src="a &amp; &quot;b&quot;.png"')
+    })
+})
+
+describe('buildHtmlCss (issue #36)', () => {
+    function css(overrides: BookExportOverrides, opts: { hasFrontMatter: boolean; hasCover: boolean }) {
+        const book: ParsedBook = {
+            bookNotePath: 'B.md',
+            metadata: { title: 'T', authors: [], language: 'en' },
+            overrides,
+            sections: [],
+            maxHeadingLevel: 0
+        }
+        return buildHtmlCss(book, DEFAULT_SETTINGS, opts)
+    }
+
+    it('numbers front matter in lower-roman and restarts body in decimal at 1', () => {
+        const out = css({}, { hasFrontMatter: true, hasCover: false })
+        expect(out).toContain('content: counter(page, lower-roman)')
+        expect(out).toContain('@page body { @bottom-center { content: counter(page, decimal); } }')
+        expect(out).toContain('@page :nth(1 of body) { counter-reset: page 1; }')
+        expect(out).toContain('.body-matter { page: body; break-before: page; }')
+    })
+
+    it('uses decimal numbering and no body rules when there is no front matter', () => {
+        const out = css({}, { hasFrontMatter: false, hasCover: false })
+        expect(out).toContain('content: counter(page, decimal)')
+        expect(out).not.toContain('lower-roman')
+        expect(out).not.toContain('.body-matter')
+    })
+
+    it('adds a full-bleed cover page that stays out of the numbering', () => {
+        const out = css({}, { hasFrontMatter: true, hasCover: true })
+        expect(out).toContain('@page cover { margin: 0; counter-reset: page 0;')
+        expect(out).toContain('.book-cover { page: cover; break-after: page; }')
+        expect(out).toContain('object-fit: cover')
+    })
+
+    it('translates page setup: size, margin, font size (pt-normalised), line spacing', () => {
+        const out = css(
+            { pageSize: 'us-letter', pageMargin: '1in', baseFontSize: '12', lineSpacing: '1.5' },
+            { hasFrontMatter: false, hasCover: false }
+        )
+        expect(out).toContain('size: letter;')
+        expect(out).toContain('margin: 1in;')
+        expect(out).toContain('font-size: 12pt;')
+        expect(out).toContain('line-height: 1.5;')
+    })
+
+    it('lets per-book overrides win and omits unset page setup', () => {
+        const out = css({ pageSize: 'a5' }, { hasFrontMatter: false, hasCover: false })
+        expect(out).toContain('size: a5;')
+        expect(out).not.toContain('margin:')
+        expect(out).not.toContain('font-size:')
+        expect(out).not.toContain('line-height:')
     })
 })

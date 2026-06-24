@@ -42,7 +42,7 @@ The plugin is a thin orchestration layer over **Pandoc**. Obsidian provides note
 
 Pandoc is the only hard prerequisite. There is no production-ready JS port of Pandoc and bundling the binary is impractical, so we treat it as a system dependency the user installs once.
 
-For PDF, Pandoc dispatches to a configurable engine. Default is **Typst** — single small binary, no LaTeX install needed, professional output. xelatex / tectonic remain available for users who already have them. (HTML-based engines weasyprint / wkhtmltopdf were removed in #36 — the pipeline's matter transitions and full-bleed cover are Typst/LaTeX-only.)
+For PDF, Pandoc dispatches to a configurable engine. Default is **Typst** — single small binary, no LaTeX install needed, professional output. xelatex / tectonic remain available for users who already have them, and **weasyprint** is supported via an HTML/CSS path (#36): the compiler emits `{=html}` matter transitions (CSS `@page` named pages with a `:nth(1 of body)` counter reset) and an HTML/CSS full-bleed cover, mirroring the Typst/LaTeX output. (wkhtmltopdf stays unsupported — its WebKit engine has no usable `@page` counter support.)
 
 ## Key invariants
 

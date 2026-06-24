@@ -262,6 +262,11 @@ describe('pushPageSetupArgs (issue #40)', () => {
         expect(pageSetup('xelatex', {})).toEqual([])
     })
 
+    it('emits nothing for weasyprint — its page setup lives in CSS (#36)', () => {
+        expect(pageSetup('weasyprint', { pageSize: 'a4', pageMargin: '2cm', baseFontSize: '12' }))
+            .toEqual([])
+    })
+
     it('lets a per-book override beat the plugin setting', () => {
         const args = pageSetup('typst', { pageSize: 'a4' }, { pageSize: 'a5' })
         expect(variableValues(args)).toContain('papersize=a5')
@@ -354,5 +359,40 @@ describe('classifyPandocError (issue #35)', () => {
             null
         )
         expect(classifyPandocError('')).toBe(null)
+    })
+})
+
+describe('buildArgs weasyprint (issue #36)', () => {
+    const compiled = makeCompiled({
+        cssPath: '/tmp/book/book.css',
+        coverBeforeBodyHtmlPath: '/tmp/book/cover-before-body.html'
+    })
+
+    it('passes the stylesheet and the HTML cover for a weasyprint PDF', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'weasyprint' }))
+        const args = buildArgs(runner, 'pdf', makeBook(), compiled, '/out/book.pdf')
+        expect(args).toContain('--pdf-engine=weasyprint')
+        expect(args).toContain('--css')
+        expect(args).toContain('/tmp/book/book.css')
+        expect(args).toContain('--include-before-body=/tmp/book/cover-before-body.html')
+        // No Typst/LaTeX-only artefacts leak into the HTML invocation.
+        expect(args.some((a) => a.startsWith('--lua-filter'))).toBe(false)
+        expect(args.some((a) => a.startsWith('--include-in-header'))).toBe(false)
+        // Page setup is in the CSS, not as -V/-M args.
+        expect(args.includes('-M')).toBe(false)
+    })
+
+    it('passes the stylesheet but no cover when the book has none', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'weasyprint' }))
+        const noCover = makeCompiled({ cssPath: '/tmp/book/book.css' })
+        const args = buildArgs(runner, 'pdf', makeBook(), noCover, '/out/book.pdf')
+        expect(args).toContain('/tmp/book/book.css')
+        expect(args.some((a) => a.startsWith('--include-before-body'))).toBe(false)
+    })
+
+    it('does not pass the stylesheet to other engines', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'typst' }))
+        const args = buildArgs(runner, 'pdf', makeBook(), compiled, '/out/book.pdf')
+        expect(args).not.toContain('--css')
     })
 })

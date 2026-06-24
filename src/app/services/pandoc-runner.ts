@@ -87,9 +87,16 @@ export class PandocRunner {
             if (engine === 'typst' && compiled.citationFilterPath !== undefined) {
                 args.push(`--lua-filter=${compiled.citationFilterPath}`)
             }
-            // Full-bleed cover page. The header file renders the cover before
-            // Pandoc's generated title page (issue #29). EPUB has its own cover
-            // via --epub-cover-image.
+            // HTML engines (weasyprint) get their page setup, front/body-matter
+            // numbering, and cover styling from a stylesheet (issue #36). EPUB
+            // has its own page model and ignores it.
+            if (engine === 'weasyprint' && compiled.cssPath !== undefined) {
+                args.push('--css', compiled.cssPath)
+            }
+            // Full-bleed cover page. Typst/LaTeX render it via an in-header file
+            // before the generated title page (issue #29); weasyprint renders an
+            // HTML fragment before the body, styled by the stylesheet (issue #36).
+            // EPUB has its own cover via --epub-cover-image.
             if (engine === 'typst' && compiled.coverHeaderTypstPath !== undefined) {
                 args.push(`--include-in-header=${compiled.coverHeaderTypstPath}`)
             } else if (
@@ -97,6 +104,8 @@ export class PandocRunner {
                 compiled.coverHeaderLatexPath !== undefined
             ) {
                 args.push(`--include-in-header=${compiled.coverHeaderLatexPath}`)
+            } else if (engine === 'weasyprint' && compiled.coverBeforeBodyHtmlPath !== undefined) {
+                args.push(`--include-before-body=${compiled.coverBeforeBodyHtmlPath}`)
             }
             const extras = book.overrides.pandocExtraArgs ?? []
             if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {
@@ -209,8 +218,10 @@ function definesMetadata(extras: string[], name: string): boolean {
  * - **LaTeX** (xelatex / tectonic) — `-V papersize`, `-V geometry:margin`
  *   (geometry package), `-V fontsize`, and `-V linestretch` (setspace).
  *
- * Explicit `pandoc_extra_args` always win: when the user already pinned the
- * relevant variable, nothing is emitted.
+ * HTML engines (weasyprint) take their page setup from CSS instead — see
+ * `buildHtmlCss` — so nothing is emitted here for them. Explicit
+ * `pandoc_extra_args` always win: when the user already pinned the relevant
+ * variable, nothing is emitted.
  */
 export function pushPageSetupArgs(
     args: string[],
@@ -219,6 +230,8 @@ export function pushPageSetupArgs(
     settings: PluginSettings
 ): void {
     const isLatex = engine === 'xelatex' || engine === 'tectonic'
+    const isTypst = engine === 'typst'
+    if (!isLatex && !isTypst) return
 
     const extras = book.overrides.pandocExtraArgs ?? []
     const pageSize = (book.overrides.pageSize ?? settings.pageSize).trim()

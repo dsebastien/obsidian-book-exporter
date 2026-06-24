@@ -153,6 +153,7 @@ The dev build copies the plugin into `<vault>/.obsidian/plugins/book-exporter/` 
 | Pandoc ≥ 3.x                                 | EPUB, PDF    | <https://pandoc.org/installing.html> |
 | Typst (recommended PDF engine)               | PDF          | <https://typst.app> — single binary  |
 | xelatex / tectonic (alternative PDF engines) | PDF          | only if you prefer LaTeX             |
+| weasyprint (alternative PDF engine)          | PDF          | `pip install weasyprint` (HTML/CSS)  |
 
 ### macOS: "pandoc not found" / "typst not found" / "xelatex not found"
 
