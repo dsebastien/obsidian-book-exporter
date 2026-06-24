@@ -40,6 +40,11 @@ book_export:
     page_break_per_chapter: true
     sections_to_skip: [Related, References, Title Options, Target Audience]
     output_dir: '~/Books/The Context Layer'
+    # PDF page setup (all optional; per-engine translation, settings provide defaults)
+    page_size: a4 # a4, us-letter, a5, legal, …
+    margin: 2cm # uniform page margin (with unit)
+    line_spacing: 1.5 # unitless multiple
+    base_font_size: 11pt # bare numbers get `pt` appended
 ---
 
 # The Context Layer

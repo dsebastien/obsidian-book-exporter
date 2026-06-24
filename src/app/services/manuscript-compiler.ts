@@ -2,6 +2,7 @@ import { TFile, type App } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import type {
+    BookExportOverrides,
     BookSection,
     InlinedNoteSeparator,
     NoteReference,
@@ -81,7 +82,7 @@ export class ManuscriptCompiler {
         const hasFrontMatter = frontMatterTitles.size > 0
 
         const parts: string[] = []
-        parts.push(buildTypstPreamble(this.settings))
+        parts.push(buildTypstPreamble(this.settings, book.overrides))
         parts.push('')
         if (hasFrontMatter) parts.push(FRONT_MATTER_OPEN)
         parts.push(`# ${book.metadata.title}`)
@@ -340,11 +341,22 @@ function renderNoteSeparator(kind: InlinedNoteSeparator): string | null {
  * and HTML/EPUB ignore it. EPUB blockquote styling is handled by the
  * reader's CSS (out of scope for this plugin).
  */
-function buildTypstPreamble(settings: PluginSettings): string {
+export function buildTypstPreamble(
+    settings: PluginSettings,
+    overrides: BookExportOverrides
+): string {
     const lines: string[] = ['```{=typst}']
     const width = settings.typstImageWidth.trim()
     if (width.length > 0) {
         lines.push(`#set image(width: ${width})`)
+    }
+    // Line spacing: Typst has no Pandoc-template variable for paragraph
+    // leading (unlike LaTeX's `linestretch`/setspace), so we emit it here as
+    // a multiple of Typst's default 0.65em leading. Page size, margins and
+    // base font size are handled via pandoc args (see `pushPageSetupArgs`).
+    const lineSpacing = (overrides.lineSpacing ?? settings.lineSpacing).trim()
+    if (lineSpacing.length > 0 && /^[0-9]+(\.[0-9]+)?$/.test(lineSpacing)) {
+        lines.push(`#set par(leading: ${lineSpacing} * 0.65em)`)
     }
     lines.push('#show quote.where(block: true): set block(spacing: 1.4em)')
     lines.push('#show quote.where(block: true): it => block(')

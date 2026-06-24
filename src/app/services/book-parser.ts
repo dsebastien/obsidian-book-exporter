@@ -334,6 +334,18 @@ function extractOverrides(fm: Record<string, unknown>): BookExportOverrides {
     const sectionsToSkip = asStringList(r['sections_to_skip'])
     if (sectionsToSkip.length > 0) overrides.sectionsToSkip = sectionsToSkip
 
+    const pageSize = asString(r['page_size'])
+    if (pageSize !== undefined) overrides.pageSize = pageSize
+
+    const pageMargin = asString(r['margin'])
+    if (pageMargin !== undefined) overrides.pageMargin = pageMargin
+
+    const lineSpacing = asString(r['line_spacing'])
+    if (lineSpacing !== undefined) overrides.lineSpacing = lineSpacing
+
+    const baseFontSize = asString(r['base_font_size'])
+    if (baseFontSize !== undefined) overrides.baseFontSize = baseFontSize
+
     const sep = asString(r['inlined_note_separator'])
     if (sep !== undefined && isInlinedNoteSeparator(sep)) overrides.inlinedNoteSeparator = sep
 

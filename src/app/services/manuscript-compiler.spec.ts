@@ -9,8 +9,10 @@ import {
     CITEPROC_TYPST_FILTER,
     buildTypstCoverHeader,
     buildLatexCoverHeader,
+    buildTypstPreamble,
     copyCoverAsset
 } from './manuscript-compiler'
+import { DEFAULT_SETTINGS } from '../types/plugin-settings.intf'
 
 function makeBook(metadata: Partial<BookMetadata> = {}): ParsedBook {
     return {
@@ -79,6 +81,29 @@ describe('copyCitationAssets', () => {
         const missing = path.join(tempDir, 'does-not-exist.bib')
         const result = await copyCitationAssets(makeBook({ bibliographyPath: missing }), tempDir)
         expect(result.bibliography).toBe(missing)
+    })
+})
+
+describe('buildTypstPreamble line spacing (issue #40)', () => {
+    it('emits #set par(leading) as a multiple of the 0.65em default', () => {
+        const preamble = buildTypstPreamble({ ...DEFAULT_SETTINGS, lineSpacing: '1.5' }, {})
+        expect(preamble).toContain('#set par(leading: 1.5 * 0.65em)')
+    })
+
+    it('lets a per-book override beat the plugin setting', () => {
+        const preamble = buildTypstPreamble(
+            { ...DEFAULT_SETTINGS, lineSpacing: '1.5' },
+            { lineSpacing: '2' }
+        )
+        expect(preamble).toContain('#set par(leading: 2 * 0.65em)')
+        expect(preamble).not.toContain('1.5')
+    })
+
+    it('omits the leading rule when line spacing is unset or non-numeric', () => {
+        expect(buildTypstPreamble(DEFAULT_SETTINGS, {})).not.toContain('leading')
+        expect(
+            buildTypstPreamble({ ...DEFAULT_SETTINGS, lineSpacing: 'wide' }, {})
+        ).not.toContain('leading')
     })
 })
 

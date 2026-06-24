@@ -106,6 +106,7 @@ export class PandocRunner {
             if (this.settings.defaultMonoFont.length > 0 && !definesVar(extras, 'monofont')) {
                 args.push('-V', `monofont=${this.settings.defaultMonoFont}`)
             }
+            pushPageSetupArgs(args, engine, book, this.settings)
         }
 
         if (book.overrides.pandocExtraArgs !== undefined) {
@@ -159,17 +160,124 @@ function clampDepth(value: number): number {
  */
 function definesVar(extras: string[], name: string): boolean {
     const equals = `${name}=`
+    // `geometry` is pinned as `-V geometry:margin=...`, so a `name:` prefix
+    // also counts as "the user already set this variable".
+    const colon = `${name}:`
+    const matchesValue = (v: string): boolean =>
+        v === name || v.startsWith(equals) || v.startsWith(colon)
     for (let i = 0; i < extras.length; i++) {
         const arg = extras[i]!
         if (arg === '-V' || arg === '--variable') {
             const next = extras[i + 1]
-            if (next !== undefined && (next === name || next.startsWith(equals))) return true
+            if (next !== undefined && matchesValue(next)) return true
         }
         if (arg.startsWith(`-V${name}=`) || arg.startsWith(`-V ${name}=`)) return true
+        if (arg.startsWith(`-V${name}:`) || arg.startsWith(`-V ${name}:`)) return true
         if (arg.startsWith(`--variable=${name}=`) || arg.startsWith(`--variable ${name}=`))
             return true
     }
     return false
+}
+
+/**
+ * Like {@link definesVar} but for pandoc metadata (`-M` / `--metadata`).
+ * Typst margins are set as a `margin.x` / `margin.y` map via `-M`, so a user
+ * who pinned `margin` (any of `margin`, `margin=`, `margin.`) in
+ * `pandoc_extra_args` should suppress our defaults.
+ */
+function definesMetadata(extras: string[], name: string): boolean {
+    const matches = (v: string): boolean =>
+        v === name || v.startsWith(`${name}=`) || v.startsWith(`${name}.`)
+    for (let i = 0; i < extras.length; i++) {
+        const arg = extras[i]!
+        if (arg === '-M' || arg === '--metadata') {
+            const next = extras[i + 1]
+            if (next !== undefined && matches(next)) return true
+        }
+        if (arg.startsWith(`-M${name}`) || arg.startsWith(`--metadata=${name}`)) return true
+    }
+    return false
+}
+
+/**
+ * Resolves the page-setup values (per-book override → plugin setting) and
+ * pushes the engine-appropriate pandoc arguments for PDF exports:
+ *
+ * - **Typst** — `-V papersize`, `-V fontsize`, and a `-M margin.x/.y` map
+ *   (the Typst template's `margin` is a dictionary, so it can't be a plain
+ *   `-V`). Line spacing has no Typst template variable and is applied in the
+ *   Typst preamble (`#set par(leading: ...)`, see `buildTypstPreamble`).
+ * - **LaTeX** (xelatex / tectonic) — `-V papersize`, `-V geometry:margin`
+ *   (geometry package), `-V fontsize`, and `-V linestretch` (setspace).
+ *
+ * HTML-based engines (weasyprint, wkhtmltopdf) take their page setup from CSS
+ * and are left untouched. Explicit `pandoc_extra_args` always win: when the
+ * user already pinned the relevant variable, nothing is emitted.
+ */
+export function pushPageSetupArgs(
+    args: string[],
+    engine: PdfEngine,
+    book: ParsedBook,
+    settings: PluginSettings
+): void {
+    const isLatex = engine === 'xelatex' || engine === 'tectonic'
+    const isTypst = engine === 'typst'
+    if (!isLatex && !isTypst) return
+
+    const extras = book.overrides.pandocExtraArgs ?? []
+    const pageSize = (book.overrides.pageSize ?? settings.pageSize).trim()
+    const margin = (book.overrides.pageMargin ?? settings.pageMargin).trim()
+    const lineSpacing = (book.overrides.lineSpacing ?? settings.lineSpacing).trim()
+    const fontSize = normaliseFontSize((book.overrides.baseFontSize ?? settings.baseFontSize).trim())
+
+    if (pageSize.length > 0 && !definesVar(extras, 'papersize')) {
+        args.push('-V', `papersize=${isLatex ? latexPaper(pageSize) : typstPaper(pageSize)}`)
+    }
+    if (fontSize.length > 0 && !definesVar(extras, 'fontsize')) {
+        args.push('-V', `fontsize=${fontSize}`)
+    }
+    if (margin.length > 0) {
+        if (isLatex) {
+            if (!definesVar(extras, 'geometry')) args.push('-V', `geometry:margin=${margin}`)
+        } else if (!definesMetadata(extras, 'margin')) {
+            args.push('-M', `margin.x=${margin}`, '-M', `margin.y=${margin}`)
+        }
+    }
+    // Typst line spacing is emitted by the compiler (preamble), not here.
+    if (lineSpacing.length > 0 && isLatex && !definesVar(extras, 'linestretch')) {
+        args.push('-V', `linestretch=${lineSpacing}`)
+    }
+}
+
+/** Appends `pt` to a bare numeric font size; passes through values with a unit. */
+export function normaliseFontSize(value: string): string {
+    if (value.length === 0) return value
+    return /^[0-9]+(\.[0-9]+)?$/.test(value) ? `${value}pt` : value
+}
+
+/**
+ * Normalises a user-facing paper-size name to a Typst `paper` value. Typst
+ * uses hyphenated US names (`us-letter`, `us-legal`); ISO sizes (`a4`, `a5`,
+ * `b5`, ...) pass through. Unknown values pass through verbatim.
+ */
+export function typstPaper(size: string): string {
+    const s = size.trim().toLowerCase()
+    if (s === 'letter' || s === 'us-letter') return 'us-letter'
+    if (s === 'legal' || s === 'us-legal') return 'us-legal'
+    return s
+}
+
+/**
+ * Normalises a user-facing paper-size name to a LaTeX `papersize` value
+ * (`a4` → `a4paper`, etc. is handled by the template; we only map the US
+ * names off Typst's hyphenated form). `us-letter` → `letter`, `us-legal` →
+ * `legal`; everything else passes through.
+ */
+export function latexPaper(size: string): string {
+    const s = size.trim().toLowerCase()
+    if (s === 'us-letter' || s === 'letter') return 'letter'
+    if (s === 'us-legal' || s === 'legal') return 'legal'
+    return s
 }
 
 /**

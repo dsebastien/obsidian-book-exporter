@@ -108,6 +108,23 @@ export interface PluginSettings {
      */
     numberSections: boolean
 
+    /**
+     * Page setup applied to PDF exports. All four are empty ⇒ "leave the
+     * engine default". They are translated per engine in
+     * {@link pushPageSetupArgs} (Typst `-V`/`-M`, LaTeX `geometry`+`setspace`)
+     * and, for Typst line spacing, in the Typst preamble. A per-book
+     * `book_export` key overrides each, and explicit `pandoc_extra_args`
+     * always win over both.
+     */
+    /** Paper size, e.g. `a4`, `us-letter`, `a5`. Empty ⇒ engine default. */
+    pageSize: string
+    /** Uniform page margin with unit, e.g. `2cm`, `1in`. Empty ⇒ engine default. */
+    pageMargin: string
+    /** Line spacing as a unitless multiple, e.g. `1.5`. Empty ⇒ engine default. */
+    lineSpacing: string
+    /** Base font size with unit, e.g. `11pt`. A bare number gets `pt` appended. Empty ⇒ engine default. */
+    baseFontSize: string
+
     includeTocByDefault: boolean
     /**
      * When `tocDepthAuto` is `true` the compiler computes the TOC depth from
@@ -147,6 +164,10 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     inlineNoteEmbeds: false,
     noteEmbedMaxDepth: 3,
     numberSections: false,
+    pageSize: '',
+    pageMargin: '',
+    lineSpacing: '',
+    baseFontSize: '',
     includeTocByDefault: true,
     tocDepthAuto: true,
     tocDepthDefault: 2,

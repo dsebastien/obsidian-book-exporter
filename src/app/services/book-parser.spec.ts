@@ -123,4 +123,22 @@ describe('BookParser overrides', () => {
         )
         expect(book.overrides).toEqual({})
     })
+
+    it('reads page-setup overrides (issue #40), coercing numbers to strings', async () => {
+        const fm = {
+            book_export: {
+                page_size: 'a5',
+                margin: '2cm',
+                line_spacing: 1.5,
+                base_font_size: 12
+            }
+        }
+        const book = await makeParser('## A\n- [[N1]]', fm, { N1: 'N1.md' }).parse(
+            makeFile('Book.md')
+        )
+        expect(book.overrides.pageSize).toBe('a5')
+        expect(book.overrides.pageMargin).toBe('2cm')
+        expect(book.overrides.lineSpacing).toBe('1.5')
+        expect(book.overrides.baseFontSize).toBe('12')
+    })
 })
