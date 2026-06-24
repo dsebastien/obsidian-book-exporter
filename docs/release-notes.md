@@ -1,5 +1,24 @@
 # Release Notes
 
+## 0.0.7 (2026-06-24)
+
+### Features
+
+- **commands:** surface validation warnings at export time ([#27](https://github.com/dsebastien/obsidian-book-exporter/issues/27)) ([#28](https://github.com/dsebastien/obsidian-book-exporter/issues/28))
+- **env:** auto-detect pandoc/typst install locations on PATH ([#9](https://github.com/dsebastien/obsidian-book-exporter/issues/9)) ([#21](https://github.com/dsebastien/obsidian-book-exporter/issues/21))
+- **export:** report partial results when one format fails ([#7](https://github.com/dsebastien/obsidian-book-exporter/issues/7)) ([#15](https://github.com/dsebastien/obsidian-book-exporter/issues/15))
+- **pdf:** full-bleed cover page for Typst PDF exports ([#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29)) ([#30](https://github.com/dsebastien/obsidian-book-exporter/issues/30))
+- **validator:** warn when bibliography/CSL file is missing ([#10](https://github.com/dsebastien/obsidian-book-exporter/issues/10)) ([#20](https://github.com/dsebastien/obsidian-book-exporter/issues/20))
+
+### Bug Fixes
+
+- **compiler:** match video URLs by host, not anchored regex ([#23](https://github.com/dsebastien/obsidian-book-exporter/issues/23)) ([#24](https://github.com/dsebastien/obsidian-book-exporter/issues/24))
+- **compiler:** prevent image filename collisions in export ([#5](https://github.com/dsebastien/obsidian-book-exporter/issues/5)) ([#17](https://github.com/dsebastien/obsidian-book-exporter/issues/17))
+- **compiler:** strip multi-line %% comments from exports ([#11](https://github.com/dsebastien/obsidian-book-exporter/issues/11)) ([#18](https://github.com/dsebastien/obsidian-book-exporter/issues/18))
+- **exporter:** correct expandHome ~user documentation ([#8](https://github.com/dsebastien/obsidian-book-exporter/issues/8)) ([#14](https://github.com/dsebastien/obsidian-book-exporter/issues/14))
+- **log:** make the "Verbose console logging" setting actually work ([#25](https://github.com/dsebastien/obsidian-book-exporter/issues/25)) ([#26](https://github.com/dsebastien/obsidian-book-exporter/issues/26))
+- **preview:** clean up preview temp dirs instead of leaking them ([#6](https://github.com/dsebastien/obsidian-book-exporter/issues/6)) ([#16](https://github.com/dsebastien/obsidian-book-exporter/issues/16))
+
 ## 0.0.6 (2026-06-23)
 
 ### Bug Fixes

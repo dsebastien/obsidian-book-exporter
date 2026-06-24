@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.6...0.0.7) (2026-06-24)
+
+### Features
+
+* **commands:** surface validation warnings at export time ([#27](https://github.com/dsebastien/obsidian-book-exporter/issues/27)) ([#28](https://github.com/dsebastien/obsidian-book-exporter/issues/28)) ([bf774c9](https://github.com/dsebastien/obsidian-book-exporter/commit/bf774c993911205713db94b8170ae9614efc724d))
+* **env:** auto-detect pandoc/typst install locations on PATH ([#9](https://github.com/dsebastien/obsidian-book-exporter/issues/9)) ([#21](https://github.com/dsebastien/obsidian-book-exporter/issues/21)) ([0429cef](https://github.com/dsebastien/obsidian-book-exporter/commit/0429cef47a1f1869c603aaa95d5155468cb9ff8e))
+* **export:** report partial results when one format fails ([#7](https://github.com/dsebastien/obsidian-book-exporter/issues/7)) ([#15](https://github.com/dsebastien/obsidian-book-exporter/issues/15)) ([272a16a](https://github.com/dsebastien/obsidian-book-exporter/commit/272a16ab209d6009615b1733225d6c0e6d1ebc92))
+* **pdf:** full-bleed cover page for Typst PDF exports ([#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29)) ([#30](https://github.com/dsebastien/obsidian-book-exporter/issues/30)) ([9c864ad](https://github.com/dsebastien/obsidian-book-exporter/commit/9c864ade5d8b1945ae08e8122b5fd74a694edce7))
+* **validator:** warn when bibliography/CSL file is missing ([#10](https://github.com/dsebastien/obsidian-book-exporter/issues/10)) ([#20](https://github.com/dsebastien/obsidian-book-exporter/issues/20)) ([38efbe3](https://github.com/dsebastien/obsidian-book-exporter/commit/38efbe39553d1d743eea2ea681cea38b2d63d006))
+
+### Bug Fixes
+
+* **compiler:** match video URLs by host, not anchored regex ([#23](https://github.com/dsebastien/obsidian-book-exporter/issues/23)) ([#24](https://github.com/dsebastien/obsidian-book-exporter/issues/24)) ([09523e0](https://github.com/dsebastien/obsidian-book-exporter/commit/09523e0469e1f3b8de06d2784b69c0fa4123ad2d))
+* **compiler:** prevent image filename collisions in export ([#5](https://github.com/dsebastien/obsidian-book-exporter/issues/5)) ([#17](https://github.com/dsebastien/obsidian-book-exporter/issues/17)) ([dc3e51f](https://github.com/dsebastien/obsidian-book-exporter/commit/dc3e51fd1b3da06242fa25761344d027f10ac8d3))
+* **compiler:** strip multi-line %% comments from exports ([#11](https://github.com/dsebastien/obsidian-book-exporter/issues/11)) ([#18](https://github.com/dsebastien/obsidian-book-exporter/issues/18)) ([f6195fb](https://github.com/dsebastien/obsidian-book-exporter/commit/f6195fb2c0a12e7e01f925549d8f6a167ff284c1))
+* **exporter:** correct expandHome ~user documentation ([#8](https://github.com/dsebastien/obsidian-book-exporter/issues/8)) ([#14](https://github.com/dsebastien/obsidian-book-exporter/issues/14)) ([459e34b](https://github.com/dsebastien/obsidian-book-exporter/commit/459e34bda80b7bab5968fd6e3d39b2b0a86d2ce6))
+* **log:** make the "Verbose console logging" setting actually work ([#25](https://github.com/dsebastien/obsidian-book-exporter/issues/25)) ([#26](https://github.com/dsebastien/obsidian-book-exporter/issues/26)) ([31c4e3a](https://github.com/dsebastien/obsidian-book-exporter/commit/31c4e3a6a72dc09589f5d13e3673669c79b147f0))
+* **preview:** clean up preview temp dirs instead of leaking them ([#6](https://github.com/dsebastien/obsidian-book-exporter/issues/6)) ([#16](https://github.com/dsebastien/obsidian-book-exporter/issues/16)) ([bf771ea](https://github.com/dsebastien/obsidian-book-exporter/commit/bf771ea2a245bc304036c55409133b9f425229a0))
+
 ## [0.0.6](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.5...0.0.6) (2026-06-23)
 
 ### Bug Fixes
@@ -53,6 +72,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
