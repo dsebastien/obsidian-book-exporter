@@ -14,7 +14,7 @@ Write a book inside an Obsidian vault — one **manifest note** lists the table 
 
 - **One note = one book.** The manifest note holds the metadata and the table of contents through wikilinks. Chapters and sections live in their own notes.
 - **No required tag, folder or filename.** Any Markdown note can be used as a manifest.
-- **EPUB and PDF.** Configurable PDF engine (Typst by default; xelatex / tectonic / weasyprint / wkhtmltopdf available).
+- **EPUB and PDF.** Configurable PDF engine (Typst by default; xelatex / tectonic available).
 - **Validation before export.** Missing chapters, broken wikilinks, and missing required metadata are surfaced with a clear report — no half-baked exports.
 - **Per-book overrides.** A `book_export:` block in the manifest's frontmatter overrides plugin-level defaults (output folder, PDF engine, formats, TOC depth, page-break behaviour, extra Pandoc flags).
 - **Manuscript preview.** A dedicated command writes the compiled `.md` and opens it — useful for checking what Pandoc will see.

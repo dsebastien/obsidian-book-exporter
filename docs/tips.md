@@ -56,4 +56,4 @@ Adjust `toc_depth` per book or globally. The default (`2`) shows chapters and im
 
 ### PDF has bad page breaks or split images
 
-Make sure you're using **Typst** or a LaTeX engine — not weasyprint / wkhtmltopdf. Browser-style HTML PDF engines have weaker page-break and figure-placement logic. Typst and LaTeX handle widows, orphans, and figure floats out of the box.
+The plugin uses **Typst** (default) or a LaTeX engine (xelatex / tectonic). Both handle widows, orphans, and figure floats out of the box. If a specific break is still wrong, drop a `---` page break in the manuscript at that point.

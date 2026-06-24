@@ -54,8 +54,6 @@ body:
               - typst
               - xelatex
               - tectonic
-              - weasyprint
-              - wkhtmltopdf
               - Not applicable (EPUB only)
       validations:
           required: false

@@ -89,8 +89,7 @@ export class PandocRunner {
             }
             // Full-bleed cover page. The header file renders the cover before
             // Pandoc's generated title page (issue #29). EPUB has its own cover
-            // via --epub-cover-image; the HTML-based engines (weasyprint,
-            // wkhtmltopdf) are not covered.
+            // via --epub-cover-image.
             if (engine === 'typst' && compiled.coverHeaderTypstPath !== undefined) {
                 args.push(`--include-in-header=${compiled.coverHeaderTypstPath}`)
             } else if (
@@ -210,9 +209,8 @@ function definesMetadata(extras: string[], name: string): boolean {
  * - **LaTeX** (xelatex / tectonic) — `-V papersize`, `-V geometry:margin`
  *   (geometry package), `-V fontsize`, and `-V linestretch` (setspace).
  *
- * HTML-based engines (weasyprint, wkhtmltopdf) take their page setup from CSS
- * and are left untouched. Explicit `pandoc_extra_args` always win: when the
- * user already pinned the relevant variable, nothing is emitted.
+ * Explicit `pandoc_extra_args` always win: when the user already pinned the
+ * relevant variable, nothing is emitted.
  */
 export function pushPageSetupArgs(
     args: string[],
@@ -221,8 +219,6 @@ export function pushPageSetupArgs(
     settings: PluginSettings
 ): void {
     const isLatex = engine === 'xelatex' || engine === 'tectonic'
-    const isTypst = engine === 'typst'
-    if (!isLatex && !isTypst) return
 
     const extras = book.overrides.pandocExtraArgs ?? []
     const pageSize = (book.overrides.pageSize ?? settings.pageSize).trim()

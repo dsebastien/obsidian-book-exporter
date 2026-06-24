@@ -257,12 +257,6 @@ describe('pushPageSetupArgs (issue #40)', () => {
         expect(metadataValues(args)).toHaveLength(0)
     })
 
-    it('emits nothing for HTML-based engines (weasyprint, wkhtmltopdf)', () => {
-        for (const engine of ['weasyprint', 'wkhtmltopdf'] as const) {
-            expect(pageSetup(engine, { pageSize: 'a4', pageMargin: '2cm' })).toEqual([])
-        }
-    })
-
     it('emits nothing when no page setup is configured', () => {
         expect(pageSetup('typst', {})).toEqual([])
         expect(pageSetup('xelatex', {})).toEqual([])

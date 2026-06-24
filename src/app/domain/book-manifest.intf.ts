@@ -7,7 +7,11 @@
  * exporter. Kept free of any Obsidian API to make the parser unit-testable.
  */
 
-export type PdfEngine = 'typst' | 'weasyprint' | 'xelatex' | 'tectonic' | 'wkhtmltopdf'
+// HTML-based engines (weasyprint, wkhtmltopdf) were removed in #36: the
+// pipeline (front/body-matter transitions, full-bleed cover) only supports
+// Typst and LaTeX, so offering them produced silently wrong output. Re-add
+// once `{=html}` matter transitions and an HTML/CSS cover exist.
+export type PdfEngine = 'typst' | 'xelatex' | 'tectonic'
 
 export type ExportFormat = 'epub' | 'pdf'
 

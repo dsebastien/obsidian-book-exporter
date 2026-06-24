@@ -397,7 +397,7 @@ function asStringList(v: unknown): string[] {
 }
 
 function isPdfEngine(v: string): v is PdfEngine {
-    return ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf'].includes(v)
+    return ['typst', 'xelatex', 'tectonic'].includes(v)
 }
 
 function isExportFormat(v: string): v is ExportFormat {

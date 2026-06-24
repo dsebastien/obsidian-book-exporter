@@ -2,7 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
 
-const PDF_ENGINES: PdfEngine[] = ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf']
+const PDF_ENGINES: PdfEngine[] = ['typst', 'xelatex', 'tectonic']
 const FORMATS: ExportFormat[] = ['epub', 'pdf']
 const NOTE_SEPARATORS: { value: InlinedNoteSeparator; label: string }[] = [
     { value: 'none', label: 'None — notes flow into one another (legacy)' },
