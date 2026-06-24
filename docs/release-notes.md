@@ -1,5 +1,15 @@
 # Release Notes
 
+## 0.0.8 (2026-06-24)
+
+### Features
+
+- **pdf:** full-bleed cover page for LaTeX engines ([#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29)) ([#32](https://github.com/dsebastien/obsidian-book-exporter/issues/32))
+
+### Bug Fixes
+
+- **typst:** neutralise stray [@citations](https://github.com/citations) when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31))
+
 ## 0.0.7 (2026-06-24)
 
 ### Features

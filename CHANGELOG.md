@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.8](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.7...0.0.8) (2026-06-24)
+
+### Features
+
+* **pdf:** full-bleed cover page for LaTeX engines ([#29](https://github.com/dsebastien/obsidian-book-exporter/issues/29)) ([#32](https://github.com/dsebastien/obsidian-book-exporter/issues/32)) ([5043fff](https://github.com/dsebastien/obsidian-book-exporter/commit/5043fffbc19214b9b6d3556fd1e0957a3fd52f9c))
+
+### Bug Fixes
+
+* **typst:** neutralise stray [@citations](https://github.com/citations) when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31)) ([e855340](https://github.com/dsebastien/obsidian-book-exporter/commit/e855340a8105e7f148bb55fd884b030ace2a67a0))
+
 ## [0.0.7](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.6...0.0.7) (2026-06-24)
 
 ### Features
@@ -72,6 +82,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
