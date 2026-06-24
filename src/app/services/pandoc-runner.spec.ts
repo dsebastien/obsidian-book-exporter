@@ -109,11 +109,19 @@ describe('buildArgs citation handling (issue #2)', () => {
         expect(args.some((a) => a.startsWith('--lua-filter'))).toBe(false)
     })
 
-    it('enables neither citeproc nor the filter when the manifest has no bibliography', () => {
+    it('omits --citeproc without a bibliography but still runs the Typst filter (#2)', () => {
+        // A stray @token with no bibliography must not become a native #cite();
+        // the filter neutralises it even though citeproc is off.
         const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'typst' }))
-        const args = buildArgs(runner, 'pdf', makeBook(), makeCompiled(), '/out/book.pdf')
+        const args = buildArgs(runner, 'pdf', makeBook(), compiled, '/out/book.pdf')
 
         expect(args).not.toContain('--citeproc')
+        expect(args).toContain('--lua-filter=/tmp/book/citeproc-typst.lua')
+    })
+
+    it('does not run the Typst filter for non-Typst engines', () => {
+        const runner = new PandocRunner(makeSettings({ defaultPdfEngine: 'xelatex' }))
+        const args = buildArgs(runner, 'pdf', makeBook(), compiled, '/out/book.pdf')
         expect(args.some((a) => a.startsWith('--lua-filter'))).toBe(false)
     })
 

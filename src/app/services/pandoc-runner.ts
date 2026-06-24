@@ -77,12 +77,14 @@ export class PandocRunner {
             const engine: PdfEngine = book.overrides.pdfEngine ?? this.settings.defaultPdfEngine
             const engineArg = pickPdfEngineArg(engine, book, this.settings)
             args.push(`--pdf-engine=${engineArg}`)
-            // The Typst writer renders citations natively (`@key` +
-            // `#bibliography()`), which only reads .bib/.yml and breaks on
-            // CSL-JSON/YAML bibliographies — the real cause of issue #2. This
-            // filter (ordered *after* --citeproc) makes citeproc the sole
-            // citation renderer, so Typst never touches the bibliography file.
-            if (engine === 'typst' && hasCitations && compiled.citationFilterPath !== undefined) {
+            // The Typst writer renders citations natively (`@key` /
+            // `#cite()` + `#bibliography()`). Run our filter for *every* Typst
+            // export — even with no bibliography — so a stray `@token` can't
+            // become a native `#cite()` that aborts with "document does not
+            // contain a bibliography", and so a CSL bibliography isn't fed to
+            // Typst's native reader. Ordered after --citeproc when active. See
+            // issue #2.
+            if (engine === 'typst' && compiled.citationFilterPath !== undefined) {
                 args.push(`--lua-filter=${compiled.citationFilterPath}`)
             }
             // Full-bleed cover page for Typst PDFs. The header file renders the
