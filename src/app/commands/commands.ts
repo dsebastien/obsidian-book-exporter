@@ -46,13 +46,58 @@ export function registerCommands(plugin: BookExporterPlugin): void {
         name: 'Open exports folder',
         callback: () => void openOutputFolder(ctx)
     })
+
+    registerExportEntrypoints(ctx)
+}
+
+/**
+ * Non-palette ways to trigger an export (issue #38): a ribbon icon and a
+ * context-menu item on Markdown notes. Both reuse {@link runExport} with the
+ * book's default formats, so a note that isn't a valid manifest is a no-op
+ * with a clear Notice rather than a silent failure.
+ */
+function registerExportEntrypoints(ctx: CommandContext): void {
+    const { plugin } = ctx
+
+    plugin.addRibbonIcon('book', 'Export current book', () => void runExport(ctx, null))
+
+    // The menu builders run synchronously, so we can't parse + validate the
+    // note here to decide whether to show the item. We offer it on any
+    // Markdown file; the export itself reports if the note isn't a book.
+    plugin.registerEvent(
+        plugin.app.workspace.on('file-menu', (menu, file) => {
+            if (!(file instanceof TFile) || file.extension !== 'md') return
+            menu.addItem((item) =>
+                item
+                    .setTitle('Export book (EPUB / PDF)')
+                    .setIcon('book')
+                    .onClick(() => void runExport(ctx, null, file))
+            )
+        })
+    )
+    plugin.registerEvent(
+        plugin.app.workspace.on('editor-menu', (menu, _editor, info) => {
+            const file = info.file
+            if (!(file instanceof TFile) || file.extension !== 'md') return
+            menu.addItem((item) =>
+                item
+                    .setTitle('Export book (EPUB / PDF)')
+                    .setIcon('book')
+                    .onClick(() => void runExport(ctx, null, file))
+            )
+        })
+    )
 }
 
 /* ------------------------------------------------------------------ */
 /* command bodies                                                      */
 /* ------------------------------------------------------------------ */
 
-async function runExport(ctx: CommandContext, requested: ExportFormat[] | null): Promise<void> {
+async function runExport(
+    ctx: CommandContext,
+    requested: ExportFormat[] | null,
+    target?: TFile
+): Promise<void> {
     if (ctx.plugin.settings.defaultOutputDir.trim().length === 0) {
         new Notice(
             'Output folder is not configured. Set "Default output folder" in Settings → Book Exporter (e.g. ~/Downloads).',
@@ -60,7 +105,7 @@ async function runExport(ctx: CommandContext, requested: ExportFormat[] | null):
         )
         return
     }
-    const setup = await prepareBook(ctx)
+    const setup = await prepareBook(ctx, target)
     if (setup === null) return
     const { book, exporter } = setup
 
@@ -183,9 +228,10 @@ async function openOutputFolder(ctx: CommandContext): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 async function prepareBook(
-    ctx: CommandContext
+    ctx: CommandContext,
+    target?: TFile
 ): Promise<{ book: ParsedBook; exporter: BookExporter } | null> {
-    const file = activeBookFile(ctx)
+    const file = activeBookFile(ctx, target)
     if (file === null) return null
 
     const parser = new BookParser(ctx.app, ctx.plugin.settings)
@@ -210,13 +256,18 @@ async function prepareBook(
     }
 }
 
-function activeBookFile(ctx: CommandContext): TFile | null {
-    const active = ctx.app.workspace.getActiveFile()
-    if (!(active instanceof TFile) || active.extension !== 'md') {
+/**
+ * Resolves the note to operate on: an explicit `target` (e.g. the note a
+ * context-menu item was invoked on) when provided, otherwise the active file.
+ * Returns `null` with a Notice when there's no Markdown note to use.
+ */
+function activeBookFile(ctx: CommandContext, target?: TFile): TFile | null {
+    const file = target ?? ctx.app.workspace.getActiveFile()
+    if (!(file instanceof TFile) || file.extension !== 'md') {
         new Notice('Open the book manifest note before running this command.')
         return null
     }
-    return active
+    return file
 }
 
 function truncate(value: string, max: number): string {
