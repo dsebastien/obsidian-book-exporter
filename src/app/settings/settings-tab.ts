@@ -2,7 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
 
-const PDF_ENGINES: PdfEngine[] = ['typst', 'weasyprint', 'xelatex', 'tectonic', 'wkhtmltopdf']
+const PDF_ENGINES: PdfEngine[] = ['typst', 'xelatex', 'tectonic', 'weasyprint']
 const FORMATS: ExportFormat[] = ['epub', 'pdf']
 const NOTE_SEPARATORS: { value: InlinedNoteSeparator; label: string }[] = [
     { value: 'none', label: 'None — notes flow into one another (legacy)' },
@@ -290,6 +290,67 @@ export class BookExporterSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         await this.plugin.updateSettings((draft) => {
                             draft.typstImageWidth = value.trim()
+                        })
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('Page size')
+            .setDesc(
+                'PDF paper size. `a4`, `us-letter`, `a5`, `legal`, … Translated per engine (Typst `paper:`, LaTeX `papersize`). Leave empty for the engine default. Per-book `book_export.page_size` wins; explicit `pandoc_extra_args` win over both.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('a4')
+                    .setValue(this.plugin.settings.pageSize)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.pageSize = value.trim()
+                        })
+                    })
+            )
+        new Setting(containerEl)
+            .setName('Page margin')
+            .setDesc(
+                'Uniform page margin with a unit, e.g. `2cm`, `1in`. Typst `margin`, LaTeX `geometry`. Leave empty for the engine default. Per-book `book_export.margin` wins.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('2cm')
+                    .setValue(this.plugin.settings.pageMargin)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.pageMargin = value.trim()
+                        })
+                    })
+            )
+        new Setting(containerEl)
+            .setName('Line spacing')
+            .setDesc(
+                'Line spacing as a unitless multiple, e.g. `1.5`. LaTeX `linestretch` (setspace); Typst `par(leading)` (× the 0.65em default). Leave empty for single spacing. Per-book `book_export.line_spacing` wins.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('1.5')
+                    .setValue(this.plugin.settings.lineSpacing)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.lineSpacing = value.trim()
+                        })
+                    })
+            )
+        new Setting(containerEl)
+            .setName('Base font size')
+            .setDesc(
+                'Base body font size, e.g. `11pt` (a bare number gets `pt` appended). Forwarded as `-V fontsize=…`. Note: standard LaTeX classes only honour 10/11/12pt. Leave empty for the engine default. Per-book `book_export.base_font_size` wins.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('11pt')
+                    .setValue(this.plugin.settings.baseFontSize)
+                    .onChange(async (value) => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft.baseFontSize = value.trim()
                         })
                     })
             )

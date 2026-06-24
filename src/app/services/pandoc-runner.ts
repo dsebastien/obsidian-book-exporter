@@ -87,10 +87,16 @@ export class PandocRunner {
             if (engine === 'typst' && compiled.citationFilterPath !== undefined) {
                 args.push(`--lua-filter=${compiled.citationFilterPath}`)
             }
-            // Full-bleed cover page. The header file renders the cover before
-            // Pandoc's generated title page (issue #29). EPUB has its own cover
-            // via --epub-cover-image; the HTML-based engines (weasyprint,
-            // wkhtmltopdf) are not covered.
+            // HTML engines (weasyprint) get their page setup, front/body-matter
+            // numbering, and cover styling from a stylesheet (issue #36). EPUB
+            // has its own page model and ignores it.
+            if (engine === 'weasyprint' && compiled.cssPath !== undefined) {
+                args.push('--css', compiled.cssPath)
+            }
+            // Full-bleed cover page. Typst/LaTeX render it via an in-header file
+            // before the generated title page (issue #29); weasyprint renders an
+            // HTML fragment before the body, styled by the stylesheet (issue #36).
+            // EPUB has its own cover via --epub-cover-image.
             if (engine === 'typst' && compiled.coverHeaderTypstPath !== undefined) {
                 args.push(`--include-in-header=${compiled.coverHeaderTypstPath}`)
             } else if (
@@ -98,6 +104,8 @@ export class PandocRunner {
                 compiled.coverHeaderLatexPath !== undefined
             ) {
                 args.push(`--include-in-header=${compiled.coverHeaderLatexPath}`)
+            } else if (engine === 'weasyprint' && compiled.coverBeforeBodyHtmlPath !== undefined) {
+                args.push(`--include-before-body=${compiled.coverBeforeBodyHtmlPath}`)
             }
             const extras = book.overrides.pandocExtraArgs ?? []
             if (this.settings.defaultMainFont.length > 0 && !definesVar(extras, 'mainfont')) {
@@ -106,6 +114,7 @@ export class PandocRunner {
             if (this.settings.defaultMonoFont.length > 0 && !definesVar(extras, 'monofont')) {
                 args.push('-V', `monofont=${this.settings.defaultMonoFont}`)
             }
+            pushPageSetupArgs(args, engine, book, this.settings)
         }
 
         if (book.overrides.pandocExtraArgs !== undefined) {
@@ -159,17 +168,125 @@ function clampDepth(value: number): number {
  */
 function definesVar(extras: string[], name: string): boolean {
     const equals = `${name}=`
+    // `geometry` is pinned as `-V geometry:margin=...`, so a `name:` prefix
+    // also counts as "the user already set this variable".
+    const colon = `${name}:`
+    const matchesValue = (v: string): boolean =>
+        v === name || v.startsWith(equals) || v.startsWith(colon)
     for (let i = 0; i < extras.length; i++) {
         const arg = extras[i]!
         if (arg === '-V' || arg === '--variable') {
             const next = extras[i + 1]
-            if (next !== undefined && (next === name || next.startsWith(equals))) return true
+            if (next !== undefined && matchesValue(next)) return true
         }
         if (arg.startsWith(`-V${name}=`) || arg.startsWith(`-V ${name}=`)) return true
+        if (arg.startsWith(`-V${name}:`) || arg.startsWith(`-V ${name}:`)) return true
         if (arg.startsWith(`--variable=${name}=`) || arg.startsWith(`--variable ${name}=`))
             return true
     }
     return false
+}
+
+/**
+ * Like {@link definesVar} but for pandoc metadata (`-M` / `--metadata`).
+ * Typst margins are set as a `margin.x` / `margin.y` map via `-M`, so a user
+ * who pinned `margin` (any of `margin`, `margin=`, `margin.`) in
+ * `pandoc_extra_args` should suppress our defaults.
+ */
+function definesMetadata(extras: string[], name: string): boolean {
+    const matches = (v: string): boolean =>
+        v === name || v.startsWith(`${name}=`) || v.startsWith(`${name}.`)
+    for (let i = 0; i < extras.length; i++) {
+        const arg = extras[i]!
+        if (arg === '-M' || arg === '--metadata') {
+            const next = extras[i + 1]
+            if (next !== undefined && matches(next)) return true
+        }
+        if (arg.startsWith(`-M${name}`) || arg.startsWith(`--metadata=${name}`)) return true
+    }
+    return false
+}
+
+/**
+ * Resolves the page-setup values (per-book override → plugin setting) and
+ * pushes the engine-appropriate pandoc arguments for PDF exports:
+ *
+ * - **Typst** — `-V papersize`, `-V fontsize`, and a `-M margin.x/.y` map
+ *   (the Typst template's `margin` is a dictionary, so it can't be a plain
+ *   `-V`). Line spacing has no Typst template variable and is applied in the
+ *   Typst preamble (`#set par(leading: ...)`, see `buildTypstPreamble`).
+ * - **LaTeX** (xelatex / tectonic) — `-V papersize`, `-V geometry:margin`
+ *   (geometry package), `-V fontsize`, and `-V linestretch` (setspace).
+ *
+ * HTML engines (weasyprint) take their page setup from CSS instead — see
+ * `buildHtmlCss` — so nothing is emitted here for them. Explicit
+ * `pandoc_extra_args` always win: when the user already pinned the relevant
+ * variable, nothing is emitted.
+ */
+export function pushPageSetupArgs(
+    args: string[],
+    engine: PdfEngine,
+    book: ParsedBook,
+    settings: PluginSettings
+): void {
+    const isLatex = engine === 'xelatex' || engine === 'tectonic'
+    const isTypst = engine === 'typst'
+    if (!isLatex && !isTypst) return
+
+    const extras = book.overrides.pandocExtraArgs ?? []
+    const pageSize = (book.overrides.pageSize ?? settings.pageSize).trim()
+    const margin = (book.overrides.pageMargin ?? settings.pageMargin).trim()
+    const lineSpacing = (book.overrides.lineSpacing ?? settings.lineSpacing).trim()
+    const fontSize = normaliseFontSize((book.overrides.baseFontSize ?? settings.baseFontSize).trim())
+
+    if (pageSize.length > 0 && !definesVar(extras, 'papersize')) {
+        args.push('-V', `papersize=${isLatex ? latexPaper(pageSize) : typstPaper(pageSize)}`)
+    }
+    if (fontSize.length > 0 && !definesVar(extras, 'fontsize')) {
+        args.push('-V', `fontsize=${fontSize}`)
+    }
+    if (margin.length > 0) {
+        if (isLatex) {
+            if (!definesVar(extras, 'geometry')) args.push('-V', `geometry:margin=${margin}`)
+        } else if (!definesMetadata(extras, 'margin')) {
+            args.push('-M', `margin.x=${margin}`, '-M', `margin.y=${margin}`)
+        }
+    }
+    // Typst line spacing is emitted by the compiler (preamble), not here.
+    if (lineSpacing.length > 0 && isLatex && !definesVar(extras, 'linestretch')) {
+        args.push('-V', `linestretch=${lineSpacing}`)
+    }
+}
+
+/** Appends `pt` to a bare numeric font size; passes through values with a unit. */
+export function normaliseFontSize(value: string): string {
+    if (value.length === 0) return value
+    return /^[0-9]+(\.[0-9]+)?$/.test(value) ? `${value}pt` : value
+}
+
+/**
+ * Normalises a user-facing paper-size name to a Typst `paper` value. Typst
+ * uses hyphenated US names (`us-letter`, `us-legal`); ISO sizes (`a4`, `a5`,
+ * `b5`, ...) pass through. Unknown values pass through verbatim.
+ */
+export function typstPaper(size: string): string {
+    const s = size.trim().toLowerCase()
+    if (s === 'letter' || s === 'us-letter') return 'us-letter'
+    if (s === 'legal' || s === 'us-legal') return 'us-legal'
+    return s
+}
+
+/**
+ * Normalises a user-facing paper-size name to a LaTeX `papersize` value
+ * (`a4` → `a4paper`, etc. is handled by the template; we only map the US
+ * names off Typst's hyphenated form). `us-letter` → `letter`, `us-legal` →
+ * `legal`; everything else passes through.
+ */
+export function latexPaper(size: string): string {
+    const s = size.trim().toLowerCase()
+    if (s === 'us-letter' || s === 'letter') return 'letter'
+    if (s === 'us-legal' || s === 'legal') return 'legal'
+    return s
 }
 
 /**
@@ -225,6 +342,51 @@ export interface RunProcessOptions {
     env?: SpawnEnv
 }
 
+/**
+ * Recognises common pandoc / Typst failure signatures in stderr and returns a
+ * one-line, actionable hint. Pandoc collapses many distinct errors into a
+ * single non-zero exit (Typst's generic "Error 43"), so the raw tail alone is
+ * hard to act on for users and maintainers alike (see issues #2, #35).
+ * Returns `null` when nothing matches, leaving the caller to show the raw
+ * tail unchanged. Ordered most-specific first.
+ */
+export function classifyPandocError(stderr: string): string | null {
+    const s = stderr.toLowerCase()
+
+    // Citation: a `@key` was used but no bibliography is present. Typst hard-
+    // errors here; our Lua filter normally prevents it (issue #2).
+    if (s.includes('does not contain a bibliography')) {
+        return 'A citation (`@key`) was used but no bibliography is set. Add a `bibliography:` field to the manifest frontmatter, or remove the stray `@token`.'
+    }
+    // Citation: the bibliography file format was not understood.
+    if (s.includes('unknown bibliography format') || s.includes('error parsing bibliography')) {
+        return "Bibliography format not recognised. Use a `.bib`, `.json`, or `.yaml` file for `bibliography:` — citeproc reads all three; Typst's native reader only takes `.bib`/`.yml`."
+    }
+    // Fonts: Typst needs a non-empty main font (Pandoc 3.6+).
+    if (s.includes('font fallback list must not be empty')) {
+        return 'No PDF main font is set. Set Settings → Book Exporter → PDF main font to a font installed on this machine (run `typst fonts` to list them).'
+    }
+    if (s.includes('unknown font family') || s.includes('unknown font')) {
+        return 'A configured font is not installed on this machine. Pick one reported by `typst fonts` in Settings → Book Exporter → PDF main/mono font.'
+    }
+    // Missing PDF engine (pandoc: "… not found. Please select a different
+    // --pdf-engine or install …").
+    if (s.includes('please select a different') || s.includes('--pdf-engine')) {
+        return 'The selected PDF engine could not be found. Install it, set Settings → Book Exporter → PDF engine path, or pick another engine.'
+    }
+    // Missing resource — usually an image.
+    if (
+        s.includes('file not found') ||
+        s.includes('does not exist') ||
+        s.includes('could not load') ||
+        s.includes('could not fetch') ||
+        s.includes('cannot find')
+    ) {
+        return 'A referenced file (often an image) could not be found. Check the path — remote `http(s)` images are not fetched for PDF, so embed a local copy instead.'
+    }
+    return null
+}
+
 export function runProcess(
     bin: string,
     args: string[],
@@ -246,7 +408,9 @@ export function runProcess(
                 return
             }
             const tail = stderr.split('\n').slice(-20).join('\n')
-            reject(new Error(`${bin} exited with code ${String(code)}\n${tail}`))
+            const lead = `${bin} exited with code ${String(code)}`
+            const hint = classifyPandocError(stderr)
+            reject(new Error(hint !== null ? `${lead}\nHint: ${hint}\n\n${tail}` : `${lead}\n${tail}`))
         })
     })
 }

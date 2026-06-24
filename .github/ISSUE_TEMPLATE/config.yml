@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Troubleshooting guide
+      url: https://github.com/dsebastien/obsidian-book-exporter#troubleshooting
+      about: 'Error 43, missing fonts, missing pandoc/Typst/LaTeX engines, citations, and images are covered here.'
+    - name: Questions & discussion
+      url: https://github.com/dsebastien/obsidian-book-exporter/discussions
+      about: For usage questions and general discussion that aren't bug reports.

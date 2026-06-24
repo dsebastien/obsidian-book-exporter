@@ -1,5 +1,19 @@
 # Release Notes
 
+## 0.1.0 (2026-06-24)
+
+### Features
+
+- **plugin:** add ribbon icon and context-menu export action ([#38](https://github.com/dsebastien/obsidian-book-exporter/issues/38))
+- **plugin:** classify common pandoc Error 43 stderr ([#35](https://github.com/dsebastien/obsidian-book-exporter/issues/35))
+- **plugin:** expose PDF page setup options ([#40](https://github.com/dsebastien/obsidian-book-exporter/issues/40)), closes [#set](https://github.com/dsebastien/obsidian-book-exporter/issues/set)
+- **plugin:** preflight-probe every PDF engine, not just typst
+- **plugin:** properly support weasyprint via HTML/CSS ([#36](https://github.com/dsebastien/obsidian-book-exporter/issues/36)) [#40](https://github.com/dsebastien/obsidian-book-exporter/issues/40)
+
+### Bug Fixes
+
+- **plugin:** drop half-supported HTML PDF engines ([#36](https://github.com/dsebastien/obsidian-book-exporter/issues/36))
+
 ## 0.0.8 (2026-06-24)
 
 ### Features

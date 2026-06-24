@@ -2,6 +2,7 @@ import { TFile, type App } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import type {
+    BookExportOverrides,
     BookSection,
     InlinedNoteSeparator,
     NoteReference,
@@ -44,6 +45,18 @@ export interface CompiledManuscript {
      * {@link buildLatexCoverHeader}.
      */
     coverHeaderLatexPath?: string
+    /**
+     * Absolute path of the HTML `--include-before-body` fragment that renders
+     * a full-bleed cover as the first page (weasyprint), or `undefined` when
+     * the manifest declares no (local) cover. See {@link buildHtmlCover}.
+     */
+    coverBeforeBodyHtmlPath?: string
+    /**
+     * Absolute path of the stylesheet passed via `--css` for HTML-based
+     * engines (weasyprint): page setup, front/body-matter page numbering, and
+     * the cover. Always written. See {@link buildHtmlCss}.
+     */
+    cssPath?: string
 }
 
 /**
@@ -81,7 +94,7 @@ export class ManuscriptCompiler {
         const hasFrontMatter = frontMatterTitles.size > 0
 
         const parts: string[] = []
-        parts.push(buildTypstPreamble(this.settings))
+        parts.push(buildTypstPreamble(this.settings, book.overrides))
         parts.push('')
         if (hasFrontMatter) parts.push(FRONT_MATTER_OPEN)
         parts.push(`# ${book.metadata.title}`)
@@ -121,6 +134,10 @@ export class ManuscriptCompiler {
             parts.push(rendered)
         }
 
+        // Close the HTML body-matter wrapper opened at the front→body
+        // transition (HTML engine only; ignored by Typst/LaTeX).
+        if (hasFrontMatter && bodyMatterStarted) parts.push(BODY_MATTER_CLOSE)
+
         const manuscriptPath = path.join(tempDir, 'manuscript.md')
         await fs.writeFile(manuscriptPath, parts.join('\n').trim() + '\n', 'utf8')
 
@@ -137,13 +154,30 @@ export class ManuscriptCompiler {
 
         let coverHeaderTypstPath: string | undefined
         let coverHeaderLatexPath: string | undefined
+        let coverBeforeBodyHtmlPath: string | undefined
         const coverRel = await copyCoverAsset(book.metadata.coverPath, tempDir)
         if (coverRel !== undefined) {
             coverHeaderTypstPath = path.join(tempDir, 'cover-header.typ')
             await fs.writeFile(coverHeaderTypstPath, buildTypstCoverHeader(coverRel), 'utf8')
             coverHeaderLatexPath = path.join(tempDir, 'cover-header.tex')
             await fs.writeFile(coverHeaderLatexPath, buildLatexCoverHeader(coverRel), 'utf8')
+            coverBeforeBodyHtmlPath = path.join(tempDir, 'cover-before-body.html')
+            await fs.writeFile(coverBeforeBodyHtmlPath, buildHtmlCover(coverRel), 'utf8')
         }
+
+        // Stylesheet for HTML-based engines (weasyprint). Carries page setup,
+        // the roman-front-matter / arabic-body-reset numbering, and the
+        // full-bleed cover. Always written; the runner only passes it via
+        // `--css` for the HTML engine. See issue #36.
+        const cssPath = path.join(tempDir, 'book.css')
+        await fs.writeFile(
+            cssPath,
+            buildHtmlCss(book, this.settings, {
+                hasFrontMatter,
+                hasCover: coverRel !== undefined
+            }),
+            'utf8'
+        )
 
         return {
             manuscriptPath,
@@ -152,7 +186,9 @@ export class ManuscriptCompiler {
             metadataPath,
             citationFilterPath,
             coverHeaderTypstPath,
-            coverHeaderLatexPath
+            coverHeaderLatexPath,
+            coverBeforeBodyHtmlPath,
+            cssPath
         }
     }
 
@@ -287,8 +323,12 @@ const FRONT_MATTER_OPEN = [
 /**
  * Raw blocks emitted right before the first body-matter section. Resets the
  * Typst page counter to 1 and switches numbering back to arabic; for LaTeX,
- * `\mainmatter` performs the same reset. Includes its own page break — the
- * caller suppresses the surrounding chapter/part break to avoid duplicates.
+ * `\mainmatter` performs the same reset. The `{=html}` block opens the
+ * `.body-matter` wrapper that the HTML/CSS path (weasyprint) uses to switch to
+ * a named `body` page and restart numbering — `page` is per-box and does not
+ * propagate to siblings, so the body content must be wrapped (closed by
+ * {@link BODY_MATTER_CLOSE}). Includes its own page break — the caller
+ * suppresses the surrounding chapter/part break to avoid duplicates.
  */
 const BODY_MATTER_OPEN = [
     '',
@@ -301,8 +341,18 @@ const BODY_MATTER_OPEN = [
     '```{=latex}',
     '\\mainmatter',
     '```',
+    '',
+    '```{=html}',
+    '<div class="body-matter">',
+    '```',
     ''
 ].join('\n')
+
+/**
+ * Closes the `.body-matter` wrapper opened by {@link BODY_MATTER_OPEN}. Pushed
+ * at the very end of the manuscript (HTML-only; ignored by Typst/LaTeX).
+ */
+const BODY_MATTER_CLOSE = ['', '```{=html}', '</div>', '```', ''].join('\n')
 
 /**
  * Returns the string emitted between two successive inlined notes inside the
@@ -340,11 +390,22 @@ function renderNoteSeparator(kind: InlinedNoteSeparator): string | null {
  * and HTML/EPUB ignore it. EPUB blockquote styling is handled by the
  * reader's CSS (out of scope for this plugin).
  */
-function buildTypstPreamble(settings: PluginSettings): string {
+export function buildTypstPreamble(
+    settings: PluginSettings,
+    overrides: BookExportOverrides
+): string {
     const lines: string[] = ['```{=typst}']
     const width = settings.typstImageWidth.trim()
     if (width.length > 0) {
         lines.push(`#set image(width: ${width})`)
+    }
+    // Line spacing: Typst has no Pandoc-template variable for paragraph
+    // leading (unlike LaTeX's `linestretch`/setspace), so we emit it here as
+    // a multiple of Typst's default 0.65em leading. Page size, margins and
+    // base font size are handled via pandoc args (see `pushPageSetupArgs`).
+    const lineSpacing = (overrides.lineSpacing ?? settings.lineSpacing).trim()
+    if (lineSpacing.length > 0 && /^[0-9]+(\.[0-9]+)?$/.test(lineSpacing)) {
+        lines.push(`#set par(leading: ${lineSpacing} * 0.65em)`)
     }
     lines.push('#show quote.where(block: true): set block(spacing: 1.4em)')
     lines.push('#show quote.where(block: true): it => block(')
@@ -926,6 +987,106 @@ export function buildLatexCoverHeader(relativeImagePath: string): string {
         '}',
         ''
     ].join('\n')
+}
+
+/**
+ * Builds the HTML `--include-before-body` fragment (for weasyprint) that
+ * renders a full-bleed cover as the first page. The styling — a zero-margin
+ * `@page cover` and an image that fills the sheet — lives in {@link buildHtmlCss}
+ * under the `.book-cover` class. See issue #36.
+ */
+export function buildHtmlCover(relativeImagePath: string): string {
+    return `<div class="book-cover"><img src="${escapeHtmlAttribute(relativeImagePath)}" alt="" /></div>\n`
+}
+
+/** Escapes a string for use inside a double-quoted HTML attribute. */
+function escapeHtmlAttribute(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
+/**
+ * Builds the stylesheet passed via `--css` to HTML-based PDF engines
+ * (weasyprint). It translates the same page-setup settings as the Typst/LaTeX
+ * args (`pushPageSetupArgs`) into CSS Paged Media, and — crucially — makes the
+ * front/body-matter numbering work for HTML engines, which the raw
+ * `{=typst}`/`{=latex}` blocks could never reach (issue #36):
+ *
+ * - Front matter uses the default `@page` with lowercase-roman numbers; the
+ *   `.body-matter` wrapper (emitted by the compiler) switches to a named
+ *   `body` page with decimal numbers restarted at 1. weasyprint only honours a
+ *   page-counter reset declared in an `@page` rule, so the reset is on
+ *   `@page :nth(1 of body)`.
+ * - A `.book-cover` first page fills the sheet (zero margin) and resets the
+ *   counter to 0 so it stays out of the numbering — the first numbered page is
+ *   then `i` (front matter) or `1` (no front matter).
+ *
+ * Page size, margin, base font size and line spacing mirror the per-engine
+ * page-setup resolution (per-book override → plugin setting).
+ */
+export function buildHtmlCss(
+    book: ParsedBook,
+    settings: PluginSettings,
+    options: { hasFrontMatter: boolean; hasCover: boolean }
+): string {
+    const o = book.overrides
+    const pageSize = (o.pageSize ?? settings.pageSize).trim()
+    const margin = (o.pageMargin ?? settings.pageMargin).trim()
+    const lineSpacing = (o.lineSpacing ?? settings.lineSpacing).trim()
+    const fontSize = (o.baseFontSize ?? settings.baseFontSize).trim()
+
+    const lines: string[] = []
+
+    const pageDecls: string[] = []
+    if (pageSize.length > 0) pageDecls.push(`size: ${cssPaper(pageSize)};`)
+    if (margin.length > 0) pageDecls.push(`margin: ${margin};`)
+    const defaultNumbering = options.hasFrontMatter ? 'lower-roman' : 'decimal'
+    pageDecls.push(`@bottom-center { content: counter(page, ${defaultNumbering}); }`)
+    lines.push(`@page { ${pageDecls.join(' ')} }`)
+
+    if (options.hasFrontMatter) {
+        lines.push('@page body { @bottom-center { content: counter(page, decimal); } }')
+        lines.push('@page :nth(1 of body) { counter-reset: page 1; }')
+        lines.push('.body-matter { page: body; break-before: page; }')
+    }
+
+    if (options.hasCover) {
+        lines.push(
+            '@page cover { margin: 0; counter-reset: page 0; @bottom-center { content: none; } }'
+        )
+        lines.push('.book-cover { page: cover; break-after: page; }')
+        lines.push('.book-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }')
+    }
+
+    const bodyDecls: string[] = []
+    if (fontSize.length > 0) bodyDecls.push(`font-size: ${normaliseCssFontSize(fontSize)};`)
+    if (lineSpacing.length > 0 && /^[0-9]+(\.[0-9]+)?$/.test(lineSpacing)) {
+        bodyDecls.push(`line-height: ${lineSpacing};`)
+    }
+    if (bodyDecls.length > 0) lines.push(`body { ${bodyDecls.join(' ')} }`)
+
+    return lines.join('\n') + '\n'
+}
+
+/** Appends `pt` to a bare numeric font size; passes through values with a unit. */
+function normaliseCssFontSize(value: string): string {
+    return /^[0-9]+(\.[0-9]+)?$/.test(value) ? `${value}pt` : value
+}
+
+/**
+ * Maps a user-facing paper-size name to a CSS `@page size` value. CSS accepts
+ * `A5`/`A4`/`letter`/`legal`/… (case-insensitive) or explicit dimensions; the
+ * hyphenated US names used elsewhere become their CSS keyword. Unknown values
+ * (including explicit dimensions like `15cm 20cm`) pass through verbatim.
+ */
+function cssPaper(size: string): string {
+    const s = size.trim().toLowerCase()
+    if (s === 'us-letter' || s === 'letter') return 'letter'
+    if (s === 'us-legal' || s === 'legal') return 'legal'
+    return s
 }
 
 /**

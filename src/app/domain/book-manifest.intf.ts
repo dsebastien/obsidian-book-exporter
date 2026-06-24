@@ -7,7 +7,12 @@
  * exporter. Kept free of any Obsidian API to make the parser unit-testable.
  */
 
-export type PdfEngine = 'typst' | 'weasyprint' | 'xelatex' | 'tectonic' | 'wkhtmltopdf'
+// weasyprint is fully supported (#36): the compiler emits `{=html}` matter
+// transitions (CSS `@page` named pages + a `:nth(1 of body)` counter reset)
+// and an HTML/CSS full-bleed cover, mirroring the Typst/LaTeX output.
+// wkhtmltopdf stays out — it's WebKit-based and abandoned, with no usable
+// `@page` counter support, so it can't restart body-matter page numbering.
+export type PdfEngine = 'typst' | 'xelatex' | 'tectonic' | 'weasyprint'
 
 export type ExportFormat = 'epub' | 'pdf'
 
@@ -73,6 +78,14 @@ export interface BookExportOverrides {
     formats?: ExportFormat[]
     /** Extra raw arguments forwarded to pandoc verbatim. */
     pandocExtraArgs?: string[]
+    /** Paper size for PDF exports, e.g. `a4`, `us-letter`, `a5`. */
+    pageSize?: string
+    /** Uniform page margin with unit, e.g. `2cm`, `1in`. */
+    pageMargin?: string
+    /** Line spacing as a unitless multiple, e.g. `1.5`. */
+    lineSpacing?: string
+    /** Base font size with unit, e.g. `11pt` (a bare number gets `pt` appended). */
+    baseFontSize?: string
     /**
      * Heading names (case-insensitive) to skip — applied both to the manifest
      * body before parsing (so authoring scaffolding like `Title Options`,
