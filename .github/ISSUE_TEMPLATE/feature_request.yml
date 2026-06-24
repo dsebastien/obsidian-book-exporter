@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a new capability or an improvement to an existing one.
+title: '[Feature]: '
+labels: [enhancement]
+body:
+    - type: markdown
+      attributes:
+          value: Thanks for the suggestion! Describe the problem you're trying to solve — that's more useful than a pre-decided solution.
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem / motivation
+          description: What are you trying to do that's hard or impossible today?
+          placeholder: When exporting a book with… I can't…
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed solution
+          description: What would you like the plugin to do? Settings, manifest `book_export` keys, commands, etc.
+      validations:
+          required: false
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Workarounds you've tried (e.g. `pandoc_extra_args`) or other approaches.
+      validations:
+          required: false

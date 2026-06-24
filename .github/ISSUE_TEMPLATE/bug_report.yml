@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a problem with an export, the manifest parser, or the settings.
+title: '[Bug]: '
+labels: [bug]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for reporting a bug. The fields below capture the details that matter most for diagnosing export failures — please fill them in. The **exact error text** and the **PDF engine** resolve most issues on their own.
+
+              Before filing, skim the [Troubleshooting section](https://github.com/dsebastien/obsidian-book-exporter#troubleshooting) — `Error 43`, missing fonts, missing engines, and citation/image problems are covered there.
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: What did you do, what did you expect, and what happened instead?
+          placeholder: Running "Export current book to PDF" fails with a Notice…
+      validations:
+          required: true
+    - type: input
+      id: plugin-version
+      attributes:
+          label: Plugin version
+          description: Settings → Community plugins → Book Exporter (or `manifest.json` → `version`).
+          placeholder: 0.0.8
+      validations:
+          required: true
+    - type: dropdown
+      id: os
+      attributes:
+          label: Operating system
+          options:
+              - macOS
+              - Windows
+              - Linux
+      validations:
+          required: true
+    - type: dropdown
+      id: format
+      attributes:
+          label: Export format
+          options:
+              - PDF
+              - EPUB
+              - Both / all formats
+              - Preview compiled manuscript (.md)
+      validations:
+          required: true
+    - type: dropdown
+      id: pdf-engine
+      attributes:
+          label: PDF engine (if exporting PDF)
+          options:
+              - typst
+              - xelatex
+              - tectonic
+              - weasyprint
+              - wkhtmltopdf
+              - Not applicable (EPUB only)
+      validations:
+          required: false
+    - type: textarea
+      id: error-text
+      attributes:
+          label: Exact error / Notice text
+          description: |
+              Paste the full error. Open the developer console (Ctrl/Cmd-Shift-I) and enable Settings → Book Exporter → Verbose console logging for the complete stderr — the line **above** a generic `Error 43` is usually the real cause.
+          render: text
+      validations:
+          required: true
+    - type: input
+      id: bibliography
+      attributes:
+          label: 'Citations: `bibliography:` value and file extension'
+          description: If the manifest uses citations, paste the `bibliography:` frontmatter value and note the file extension (.bib / .json / .yaml). Leave blank if not using citations.
+          placeholder: 'bibliography: references/sources.bib'
+      validations:
+          required: false
+    - type: textarea
+      id: manifest
+      attributes:
+          label: Manifest frontmatter / `book_export` block (optional)
+          description: The relevant frontmatter helps reproduce the issue. Redact anything private.
+          render: yaml
+      validations:
+          required: false
+    - type: input
+      id: tool-versions
+      attributes:
+          label: Tool versions (optional)
+          description: Output of `pandoc --version` and the PDF engine's `--version`.
+          placeholder: pandoc 3.6.4, typst 0.13.1
+      validations:
+          required: false
