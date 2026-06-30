@@ -171,7 +171,7 @@ Exports run `pandoc` (and a PDF engine) as a child process. When something fails
 
 ### "Error 43" or an export that fails with no obvious reason
 
-`Error 43` is Typst's generic compilation-failure code — it is *not* the cause, just the exit status. The real message is in the lines above it in the console / Notice (e.g. a missing font, an unfetchable image, or a malformed table). Read the stderr tail first; almost every failure below shows up there.
+`Error 43` is Typst's generic compilation-failure code — it is _not_ the cause, just the exit status. The real message is in the lines above it in the console / Notice (e.g. a missing font, an unfetchable image, or a malformed table). Read the stderr tail first; almost every failure below shows up there.
 
 ### "font fallback list must not be empty" / fonts look wrong
 

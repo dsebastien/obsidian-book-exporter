@@ -103,9 +103,9 @@ describe('buildTypstPreamble line spacing (issue #40)', () => {
 
     it('omits the leading rule when line spacing is unset or non-numeric', () => {
         expect(buildTypstPreamble(DEFAULT_SETTINGS, {})).not.toContain('leading')
-        expect(
-            buildTypstPreamble({ ...DEFAULT_SETTINGS, lineSpacing: 'wide' }, {})
-        ).not.toContain('leading')
+        expect(buildTypstPreamble({ ...DEFAULT_SETTINGS, lineSpacing: 'wide' }, {})).not.toContain(
+            'leading'
+        )
     })
 })
 
@@ -229,7 +229,10 @@ describe('buildHtmlCover (issue #36)', () => {
 })
 
 describe('buildHtmlCss (issue #36)', () => {
-    function css(overrides: BookExportOverrides, opts: { hasFrontMatter: boolean; hasCover: boolean }) {
+    function css(
+        overrides: BookExportOverrides,
+        opts: { hasFrontMatter: boolean; hasCover: boolean }
+    ) {
         const book: ParsedBook = {
             bookNotePath: 'B.md',
             metadata: { title: 'T', authors: [], language: 'en' },

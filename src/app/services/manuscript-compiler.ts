@@ -1075,7 +1075,9 @@ export function buildHtmlCss(
             '@page cover { margin: 0; counter-reset: page 0; @bottom-center { content: none; } }'
         )
         lines.push('.book-cover { page: cover; break-after: page; }')
-        lines.push('.book-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }')
+        lines.push(
+            '.book-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }'
+        )
     }
 
     const bodyDecls: string[] = []

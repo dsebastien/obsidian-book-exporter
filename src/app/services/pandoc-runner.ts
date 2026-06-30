@@ -237,7 +237,9 @@ export function pushPageSetupArgs(
     const pageSize = (book.overrides.pageSize ?? settings.pageSize).trim()
     const margin = (book.overrides.pageMargin ?? settings.pageMargin).trim()
     const lineSpacing = (book.overrides.lineSpacing ?? settings.lineSpacing).trim()
-    const fontSize = normaliseFontSize((book.overrides.baseFontSize ?? settings.baseFontSize).trim())
+    const fontSize = normaliseFontSize(
+        (book.overrides.baseFontSize ?? settings.baseFontSize).trim()
+    )
 
     if (pageSize.length > 0 && !definesVar(extras, 'papersize')) {
         args.push('-V', `papersize=${isLatex ? latexPaper(pageSize) : typstPaper(pageSize)}`)
@@ -410,7 +412,9 @@ export function runProcess(
             const tail = stderr.split('\n').slice(-20).join('\n')
             const lead = `${bin} exited with code ${String(code)}`
             const hint = classifyPandocError(stderr)
-            reject(new Error(hint !== null ? `${lead}\nHint: ${hint}\n\n${tail}` : `${lead}\n${tail}`))
+            reject(
+                new Error(hint !== null ? `${lead}\nHint: ${hint}\n\n${tail}` : `${lead}\n${tail}`)
+            )
         })
     })
 }

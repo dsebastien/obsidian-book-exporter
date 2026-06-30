@@ -193,7 +193,10 @@ export function extractBlock(body: string, blockId: string): string | null {
         // The id is on its own line; the block is the preceding paragraph.
         let start = markerIdx - 1
         while (start >= 0 && lines[start]!.trim() !== '') start--
-        const text = lines.slice(start + 1, markerIdx).join('\n').trim()
+        const text = lines
+            .slice(start + 1, markerIdx)
+            .join('\n')
+            .trim()
         return text.length > 0 ? text : null
     }
 

@@ -263,8 +263,9 @@ describe('pushPageSetupArgs (issue #40)', () => {
     })
 
     it('emits nothing for weasyprint — its page setup lives in CSS (#36)', () => {
-        expect(pageSetup('weasyprint', { pageSize: 'a4', pageMargin: '2cm', baseFontSize: '12' }))
-            .toEqual([])
+        expect(
+            pageSetup('weasyprint', { pageSize: 'a4', pageMargin: '2cm', baseFontSize: '12' })
+        ).toEqual([])
     })
 
     it('lets a per-book override beat the plugin setting', () => {
@@ -349,15 +350,13 @@ describe('classifyPandocError (issue #35)', () => {
     })
 
     it('matches case-insensitively', () => {
-        expect(
-            classifyPandocError('FONT FALLBACK LIST MUST NOT BE EMPTY')
-        ).toContain('PDF main font')
+        expect(classifyPandocError('FONT FALLBACK LIST MUST NOT BE EMPTY')).toContain(
+            'PDF main font'
+        )
     })
 
     it('returns null for an unrecognised error (falls back to the raw tail)', () => {
-        expect(classifyPandocError('error: something entirely novel happened on line 7')).toBe(
-            null
-        )
+        expect(classifyPandocError('error: something entirely novel happened on line 7')).toBe(null)
         expect(classifyPandocError('')).toBe(null)
     })
 })
