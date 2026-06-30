@@ -1,4 +1,5 @@
 import { Notice, TFile, type App } from 'obsidian'
+import * as path from 'node:path'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, ParsedBook } from '../domain/book-manifest.intf'
 import type { ExportOutcome } from '../domain/export-options.intf'
@@ -119,7 +120,18 @@ async function runExport(
     try {
         const outcomes = await exporter.export(book, formats)
         const summary = summarizeOutcomes(outcomes)
-        new Notice(summary.message, summary.hadFailure ? 12000 : undefined)
+        const notice = new Notice(summary.message, summary.hadFailure ? 12000 : undefined)
+
+        // Surface a one-click way to reach the just-produced artifact (issue
+        // #37): the notice opens it on click, and — when enabled — it's opened
+        // automatically. Only successful outputs are ever opened.
+        const openTarget = resolveOpenTarget(outcomes)
+        if (openTarget !== null) {
+            notice.messageEl.addClass('mod-clickable')
+            notice.messageEl.addEventListener('click', () => void openExternal(openTarget))
+            if (ctx.plugin.settings.openAfterExport) await openExternal(openTarget)
+        }
+
         log(
             `Export ${summary.hadFailure ? 'finished with failures' : 'complete'} for ${book.bookNotePath}`,
             summary.hadFailure ? 'warn' : 'info',
@@ -168,6 +180,20 @@ export function summarizeOutcomes(outcomes: ExportOutcome[]): {
         .join('; ')
     parts.push(`Failed: ${failList}`)
     return { message: parts.join(' '), hadFailure: true }
+}
+
+/**
+ * Picks what to open after an export so the user can reach the result in one
+ * step (issue #37). A single produced file is opened directly; when several
+ * formats succeed, their shared output folder is opened instead of launching a
+ * separate handler per file. Returns `null` when nothing succeeded, so failed
+ * formats are never opened.
+ */
+export function resolveOpenTarget(outcomes: ExportOutcome[]): string | null {
+    const succeeded = outcomes.filter((o): o is Extract<ExportOutcome, { ok: true }> => o.ok)
+    const first = succeeded[0]
+    if (first === undefined) return null
+    return succeeded.length === 1 ? first.outputPath : path.dirname(first.outputPath)
 }
 
 async function runPreview(ctx: CommandContext): Promise<void> {

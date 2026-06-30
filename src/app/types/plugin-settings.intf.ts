@@ -141,6 +141,14 @@ export interface PluginSettings {
     /** Formats triggered by the "export all" command when the manifest doesn't override them. */
     defaultFormats: ExportFormat[]
 
+    /**
+     * Open the produced output with the OS default handler after a successful
+     * export. A single produced file is opened directly; when several formats
+     * succeed, their shared output folder is opened instead so we don't launch
+     * a separate handler per format. Failed formats are never opened.
+     */
+    openAfterExport: boolean
+
     /** Keep the temp manuscript and resources after a successful export (debug). */
     keepTempFiles: boolean
     /** Verbose console logging. */
@@ -173,6 +181,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     tocDepthDefault: 2,
     pageBreakPerChapterDefault: true,
     defaultFormats: ['epub', 'pdf'],
+    openAfterExport: true,
     keepTempFiles: false,
     debug: false
 }

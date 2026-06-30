@@ -118,6 +118,19 @@ export class BookExporterSettingTab extends PluginSettingTab {
             )
 
         new Setting(containerEl)
+            .setName('Open output after export')
+            .setDesc(
+                'After a successful export, open the produced file with your OS default handler. When several formats succeed, opens their output folder instead. The success notice is always clickable to open it manually.'
+            )
+            .addToggle((t) =>
+                t.setValue(this.plugin.settings.openAfterExport).onChange(async (value) => {
+                    await this.plugin.updateSettings((draft) => {
+                        draft.openAfterExport = value
+                    })
+                })
+            )
+
+        new Setting(containerEl)
             .setName('PDF engine')
             .setDesc(
                 'Pandoc PDF engine used unless the book overrides it. Typst is recommended — single small binary, no LaTeX install needed.'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { summarizeOutcomes } from './commands'
+import { resolveOpenTarget, summarizeOutcomes } from './commands'
 import type { ExportOutcome } from '../domain/export-options.intf'
 
 const ok = (format: 'epub' | 'pdf', durationMs: number): ExportOutcome => ({
@@ -43,5 +43,23 @@ describe('summarizeOutcomes', () => {
         const { message } = summarizeOutcomes([fail('pdf', long)])
         expect(message.length).toBeLessThan(220)
         expect(message).toContain('…')
+    })
+})
+
+describe('resolveOpenTarget', () => {
+    it('returns the file itself when a single format succeeds', () => {
+        expect(resolveOpenTarget([ok('epub', 1200)])).toBe('/out/book.epub')
+    })
+
+    it('returns the shared output folder when several formats succeed', () => {
+        expect(resolveOpenTarget([ok('epub', 1200), ok('pdf', 3400)])).toBe('/out')
+    })
+
+    it('returns null when nothing succeeded — failed formats are never opened', () => {
+        expect(resolveOpenTarget([fail('pdf', 'typst not found')])).toBeNull()
+    })
+
+    it('ignores failed formats and opens the sole successful file', () => {
+        expect(resolveOpenTarget([ok('epub', 1200), fail('pdf', 'boom')])).toBe('/out/book.epub')
     })
 })
