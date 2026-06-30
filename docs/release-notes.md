@@ -28,7 +28,7 @@
 
 ### Bug Fixes
 
-- **typst:** neutralise stray [@citations](https://github.com/citations) when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31))
+- **typst:** neutralise stray `@citations` when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31))
 
 ## 0.0.7 (2026-06-24)
 

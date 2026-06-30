@@ -12,6 +12,25 @@ All notable changes to this project will be documented in this file.
 
 `
 
+/**
+ * Neutralises bogus GitHub @mention links that conventional-changelog generates
+ * for code-ish `@token`s appearing in commit subjects (e.g. a Typst `@citations`
+ * reference or a `@set` directive).
+ *
+ * conventional-changelog treats a leading `@token` as a GitHub @mention and turns
+ * it into a self-referential profile link `[@token](https://github.com/token)`.
+ * For non-user tokens this is wrong (see the 0.0.8 release notes). We rewrite such
+ * auto-generated mention links — those where the displayed handle is identical to
+ * the URL path — into inline code (`` `@token` ``) so they render as plain text and
+ * GitHub does not re-autolink them when the changelog is shown in release notes.
+ *
+ * Real issue/commit/compare links (e.g. `[#2](https://github.com/owner/repo/issues/2)`)
+ * are left untouched because their link text never equals the URL path.
+ */
+export function neutraliseMentionLinks(text: string): string {
+    return text.replace(/\[@([A-Za-z0-9-]+)\]\(https?:\/\/github\.com\/\1\)/g, '`@$1`')
+}
+
 export async function generateChangelog(): Promise<string> {
     const changelogFile = Bun.file('CHANGELOG.md')
 
@@ -30,7 +49,9 @@ export async function generateChangelog(): Promise<string> {
     }
 
     // Generate new changelog entry to stdout
-    const newEntry = await $`bunx conventional-changelog -p conventionalcommits -r 1`.text()
+    const rawEntry = await $`bunx conventional-changelog -p conventionalcommits -r 1`.text()
+    // Neutralise bogus @mention links (e.g. `@citations`) before writing.
+    const newEntry = neutraliseMentionLinks(rawEntry)
 
     // Combine header + new entry + existing content
     const finalContent =
@@ -101,6 +122,9 @@ export async function syncToDocsReleaseNotes(): Promise<void> {
         .replace(/^# Changelog/m, '# Release Notes')
         // Remove the "All notable changes..." line
         .replace(/^All notable changes to this project will be documented in this file\.\n\n/m, '')
+
+    // Neutralise bogus @mention links so previously generated entries are also cleaned.
+    releaseNotes = neutraliseMentionLinks(releaseNotes)
 
     // Clean up any double blank lines
     releaseNotes = releaseNotes.replace(/\n{3,}/g, '\n\n')

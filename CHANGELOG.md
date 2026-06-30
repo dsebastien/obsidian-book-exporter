@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-* **typst:** neutralise stray [@citations](https://github.com/citations) when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31)) ([e855340](https://github.com/dsebastien/obsidian-book-exporter/commit/e855340a8105e7f148bb55fd884b030ace2a67a0))
+* **typst:** neutralise stray `@citations` when no bibliography is set ([#2](https://github.com/dsebastien/obsidian-book-exporter/issues/2)) ([#31](https://github.com/dsebastien/obsidian-book-exporter/issues/31)) ([e855340](https://github.com/dsebastien/obsidian-book-exporter/commit/e855340a8105e7f148bb55fd884b030ace2a67a0))
 
 ## [0.0.7](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.6...0.0.7) (2026-06-24)
 
