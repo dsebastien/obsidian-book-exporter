@@ -117,6 +117,156 @@ export function stripObsidianComments(body: string): string {
     return out.join('\n')
 }
 
+/**
+ * Anchor of an embed/wikilink target. A `^block` reference points at a single
+ * block; a `#heading` (optionally a `#a#b` chain) points at a heading section.
+ */
+export type EmbedAnchor =
+    | { type: 'block'; blockId: string }
+    | { type: 'heading'; headingPath: string[] }
+
+/**
+ * Splits an embed target into the note linkpath and its optional anchor.
+ * Handles both Obsidian block syntax (`Note#^id`) and the looser `Note^id`,
+ * heading sections (`Note#Heading`), and heading chains (`Note#H1#H2`).
+ * Returns `anchor: null` when there is no anchor (or only an empty one), so the
+ * caller inlines the whole note.
+ */
+export function parseEmbedTarget(target: string): { linkpath: string; anchor: EmbedAnchor | null } {
+    const delim = /[#^]/.exec(target)
+    if (delim === null) return { linkpath: target.trim(), anchor: null }
+
+    const linkpath = target.slice(0, delim.index).trim()
+    const rest = target.slice(delim.index)
+
+    // Block reference: `^id` directly, or `#^id`.
+    const blockMatch = /^#?\^(.+)$/.exec(rest)
+    if (blockMatch !== null) {
+        const blockId = blockMatch[1]!.trim()
+        return { linkpath, anchor: blockId.length > 0 ? { type: 'block', blockId } : null }
+    }
+
+    // Heading section (possibly a `#a#b` chain into a subheading).
+    const headingPath = rest
+        .slice(1)
+        .split('#')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    if (headingPath.length === 0) return { linkpath, anchor: null }
+    return { linkpath, anchor: { type: 'heading', headingPath } }
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Extracts the single block tagged with `^blockId` from a note body (Obsidian
+ * block reference). The id may sit at the end of a block's last line
+ * (`text ^id`) or alone on the line after the block. The surrounding
+ * contiguous (blank-line-delimited) lines form the block; the `^id` marker is
+ * removed from the output. Returns `null` when the id isn't found, so the
+ * caller can fall back rather than inlining the whole note (issue #50).
+ */
+export function extractBlock(body: string, blockId: string): string | null {
+    if (blockId.length === 0) return null
+    const lines = body.split(/\r?\n/)
+    const marker = new RegExp(`(?:^|\\s)\\^${escapeRegExp(blockId)}\\s*$`)
+
+    let markerIdx = -1
+    let inFence = false
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            continue
+        }
+        if (!inFence && marker.test(line)) {
+            markerIdx = i
+            break
+        }
+    }
+    if (markerIdx === -1) return null
+
+    const standalone = lines[markerIdx]!.trim() === `^${blockId}`
+    if (standalone) {
+        // The id is on its own line; the block is the preceding paragraph.
+        let start = markerIdx - 1
+        while (start >= 0 && lines[start]!.trim() !== '') start--
+        const text = lines.slice(start + 1, markerIdx).join('\n').trim()
+        return text.length > 0 ? text : null
+    }
+
+    // The id is appended to the block's last line; expand to the whole block.
+    let start = markerIdx
+    while (start - 1 >= 0 && lines[start - 1]!.trim() !== '') start--
+    let end = markerIdx
+    while (end + 1 < lines.length && lines[end + 1]!.trim() !== '') end++
+
+    const block = lines.slice(start, end + 1)
+    const rel = markerIdx - start
+    block[rel] = block[rel]!.replace(new RegExp(`\\s*\\^${escapeRegExp(blockId)}\\s*$`), '')
+    const text = block.join('\n').trim()
+    return text.length > 0 ? text : null
+}
+
+/**
+ * Extracts the section under the heading named by `headingPath` (the heading
+ * line itself plus everything down to the next heading of the same or higher
+ * level). A multi-element path drills into subheadings (`Note#H1#H2`). Heading
+ * matching is case-insensitive. Code fences are respected so a `#` inside a
+ * fence is never mistaken for a heading. Returns `null` when the heading isn't
+ * found (issue #50).
+ */
+export function extractSection(body: string, headingPath: string[]): string | null {
+    return sliceSection(body.split(/\r?\n/), headingPath)
+}
+
+function sliceSection(lines: string[], headingPath: string[]): string | null {
+    const wanted = headingPath[0]?.trim().toLowerCase()
+    if (wanted === undefined) return null
+
+    let startIdx = -1
+    let level = 0
+    let inFence = false
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            continue
+        }
+        if (inFence) continue
+        const heading = HEADING_RE.exec(line)
+        if (heading !== null && heading[2]!.trim().toLowerCase() === wanted) {
+            startIdx = i
+            level = heading[1]!.length
+            break
+        }
+    }
+    if (startIdx === -1) return null
+
+    let endIdx = lines.length
+    inFence = false
+    for (let i = startIdx + 1; i < lines.length; i++) {
+        const line = lines[i]!
+        if (FENCE_RE.test(line)) {
+            inFence = !inFence
+            continue
+        }
+        if (inFence) continue
+        const heading = HEADING_RE.exec(line)
+        if (heading !== null && heading[1]!.length <= level) {
+            endIdx = i
+            break
+        }
+    }
+
+    const section = lines.slice(startIdx, endIdx)
+    const rest = headingPath.slice(1)
+    if (rest.length === 0) return section.join('\n').trim()
+    return sliceSection(section, rest)
+}
+
 const HR_RE = /^\s*-{3,}\s*$/
 
 /**

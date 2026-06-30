@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 import {
     convertThematicBreaksToPageBreaks,
+    extractBlock,
+    extractSection,
+    parseEmbedTarget,
     stripFrontmatter,
     stripObsidianComments,
     stripSkippedSections
@@ -97,5 +100,96 @@ describe('convertThematicBreaksToPageBreaks', () => {
     it('preserves --- inside a fenced code block', () => {
         const input = ['```', '---', '```'].join('\n')
         expect(convertThematicBreaksToPageBreaks(input, '<PB>')).toBe(input)
+    })
+})
+
+describe('parseEmbedTarget', () => {
+    it('returns no anchor for a bare note name', () => {
+        expect(parseEmbedTarget('Some Note')).toEqual({ linkpath: 'Some Note', anchor: null })
+    })
+
+    it('parses the loose `Note^id` block syntax (issue #50)', () => {
+        expect(parseEmbedTarget('literature note^2345fr')).toEqual({
+            linkpath: 'literature note',
+            anchor: { type: 'block', blockId: '2345fr' }
+        })
+    })
+
+    it('parses the canonical `Note#^id` block syntax', () => {
+        expect(parseEmbedTarget('Note#^abc')).toEqual({
+            linkpath: 'Note',
+            anchor: { type: 'block', blockId: 'abc' }
+        })
+    })
+
+    it('parses a heading anchor', () => {
+        expect(parseEmbedTarget('Note#Chapter One')).toEqual({
+            linkpath: 'Note',
+            anchor: { type: 'heading', headingPath: ['Chapter One'] }
+        })
+    })
+
+    it('parses a heading chain into a subheading', () => {
+        expect(parseEmbedTarget('Note#H1#H2')).toEqual({
+            linkpath: 'Note',
+            anchor: { type: 'heading', headingPath: ['H1', 'H2'] }
+        })
+    })
+})
+
+describe('extractBlock', () => {
+    it('extracts a single-line block and strips the trailing ^id (issue #50)', () => {
+        const body = ['intro para', '', 'the referenced block ^2345fr', '', 'later para'].join('\n')
+        expect(extractBlock(body, '2345fr')).toBe('the referenced block')
+    })
+
+    it('extracts a multi-line block surrounding the marker', () => {
+        const body = ['', 'line one', 'line two ^id', '', 'next'].join('\n')
+        expect(extractBlock(body, 'id')).toBe('line one\nline two')
+    })
+
+    it('extracts the preceding paragraph when the id is on its own line', () => {
+        const body = ['para a', '', '| h |', '| - |', '| x |', '^tbl', '', 'after'].join('\n')
+        expect(extractBlock(body, 'tbl')).toBe('| h |\n| - |\n| x |')
+    })
+
+    it('returns null when the block id is absent', () => {
+        expect(extractBlock('no markers here', 'missing')).toBeNull()
+    })
+})
+
+describe('extractSection', () => {
+    const body = [
+        '# Title',
+        'preamble',
+        '## Wanted',
+        'wanted body',
+        '### Sub',
+        'sub body',
+        '## Other',
+        'other body'
+    ].join('\n')
+
+    it('extracts a heading section up to the next same-level heading (issue #50)', () => {
+        expect(extractSection(body, ['Wanted'])).toBe(
+            ['## Wanted', 'wanted body', '### Sub', 'sub body'].join('\n')
+        )
+    })
+
+    it('matches headings case-insensitively', () => {
+        expect(extractSection(body, ['wanted'])).toContain('## Wanted')
+    })
+
+    it('drills into a subheading via a heading chain', () => {
+        expect(extractSection(body, ['Wanted', 'Sub'])).toBe(['### Sub', 'sub body'].join('\n'))
+    })
+
+    it('returns null when the heading is absent', () => {
+        expect(extractSection(body, ['Nope'])).toBeNull()
+    })
+
+    it('ignores a `#` that is inside a code fence', () => {
+        const fenced = ['## Real', 'x', '```', '## Fake', '```', '## End'].join('\n')
+        expect(extractSection(fenced, ['Fake'])).toBeNull()
     })
 })

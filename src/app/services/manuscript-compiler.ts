@@ -12,6 +12,9 @@ import type { PluginSettings } from '../types/plugin-settings.intf'
 import {
     FENCE_RE,
     convertThematicBreaksToPageBreaks,
+    extractBlock,
+    extractSection,
+    parseEmbedTarget,
     stripFrontmatter,
     stripObsidianComments,
     stripSkippedSections
@@ -670,19 +673,22 @@ export class BodyTransformer {
     }
 
     /**
-     * Expands `![[Note]]` (or `![[Note#section]]`, `![[Note|alias]]`) by
-     * inlining the target note's body. Honors the plugin's
-     * `inlineNoteEmbeds` toggle, applies the configured `noteEmbedMaxDepth`,
-     * and tracks `visited` paths to break cycles. Section anchors are not
-     * resolved (slicing into a single heading is left as a follow-up); the
-     * full note body is inlined in that case.
+     * Expands `![[Note]]` (or `![[Note#section]]`, `![[Note#^block]]`,
+     * `![[Note|alias]]`) by inlining the target note's body. Honors the
+     * plugin's `inlineNoteEmbeds` toggle, applies the configured
+     * `noteEmbedMaxDepth`, and tracks `visited` paths to break cycles.
+     *
+     * A `#heading` anchor inlines only that heading's section and a `^block`
+     * anchor inlines only that block — rather than the whole note (issue #50).
+     * When the anchor can't be resolved, the reference text is shown instead of
+     * dumping the entire note.
      *
      * Returns `null` when the embed should not be expanded (feature off,
      * target not a note, anchor only, etc.) so the caller falls back to
      * the legacy "drop the embed" behaviour. Returns a fallback display
-     * string (`alias` or basename) when the depth limit is reached or a
-     * cycle is detected — the reader still sees a reference, just not the
-     * full body.
+     * string (`alias` or basename) when the depth limit is reached, a cycle
+     * is detected, or an anchor doesn't resolve — the reader still sees a
+     * reference, just not the full body.
      */
     private async expandNoteEmbed(
         target: string,
@@ -693,8 +699,7 @@ export class BodyTransformer {
     ): Promise<string | null> {
         if (!this.opts.expandNoteEmbeds) return null
 
-        // Strip any `#section` / `^block` anchor — we inline the whole note.
-        const linkpath = target.split(/[#^]/, 1)[0]?.trim() ?? target
+        const { linkpath, anchor } = parseEmbedTarget(target)
         if (linkpath.length === 0) return null
 
         const file = this.app.metadataCache.getFirstLinkpathDest(linkpath, source.path)
@@ -712,12 +717,24 @@ export class BodyTransformer {
 
         const raw = await this.app.vault.cachedRead(file)
         const body = stripFrontmatter(raw)
-        const skipped = stripSkippedSections(body, this.opts.sectionsToSkip)
-        const headerless = dropFirstH1(skipped)
+
+        // Resolve the anchor to the exact block / section the user referenced
+        // (issue #50). Without an anchor we inline the whole note as before.
+        let content: string | null
+        if (anchor === null) {
+            content = dropFirstH1(stripSkippedSections(body, this.opts.sectionsToSkip))
+        } else if (anchor.type === 'block') {
+            content = extractBlock(body, anchor.blockId)
+        } else {
+            content = extractSection(body, anchor.headingPath)
+        }
+        // An anchor that points nowhere shouldn't dump the whole note — show
+        // the reference text instead.
+        if (content === null) return fallbackDisplay
 
         const nextVisited = new Set(seen)
         nextVisited.add(file.path)
-        return this.transform(headerless, file, depth + 1, nextVisited)
+        return this.transform(content, file, depth + 1, nextVisited)
     }
 
     private async copyAsset(target: string, source: TFile): Promise<string | null> {

@@ -200,4 +200,58 @@ describe('BodyTransformer note-embed expansion', () => {
         expect(out).toContain('B body')
         // Resolves without throwing / hanging — cycle is cut.
     })
+
+    it('inlines only the referenced block, not the whole note (issue #50)', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Lit.md'], {
+            'Lit.md': [
+                '# Literature note',
+                'lots of unrelated prose',
+                '',
+                'the quoted sentence ^2345fr',
+                '',
+                'more unrelated prose'
+            ].join('\n')
+        })
+        const bt = new BodyTransformer(app, resources, embedOpts)
+
+        const out = await bt.transform('![[Lit^2345fr]]', makeFile('chapter.md'))
+
+        expect(out).toContain('the quoted sentence')
+        expect(out).not.toContain('unrelated prose')
+        expect(out).not.toContain('^2345fr')
+    })
+
+    it('inlines only the referenced heading section (issue #50)', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Note.md'], {
+            'Note.md': [
+                '# Note',
+                'intro',
+                '## Wanted',
+                'wanted body',
+                '## Other',
+                'other body'
+            ].join('\n')
+        })
+        const bt = new BodyTransformer(app, resources, embedOpts)
+
+        const out = await bt.transform('![[Note#Wanted]]', makeFile('chapter.md'))
+
+        expect(out).toContain('wanted body')
+        expect(out).not.toContain('other body')
+        expect(out).not.toContain('intro')
+    })
+
+    it('shows the reference text when an anchor cannot be resolved', async () => {
+        const resources = await makeResourcesDir()
+        const app = makeApp(['Note.md'], { 'Note.md': '# Note\nbody prose' })
+        const bt = new BodyTransformer(app, resources, embedOpts)
+
+        const out = await bt.transform('![[Note#^missing]]', makeFile('chapter.md'))
+
+        // Falls back to a reference rather than dumping the whole note.
+        expect(out).not.toContain('body prose')
+        expect(out).toContain('Note')
+    })
 })
