@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.2.1 (2026-06-30)
+
+### Bug Fixes
+
+- **changelog:** neutralise bogus @-token mention links ([#45](https://github.com/dsebastien/obsidian-book-exporter/issues/45)) ([#49](https://github.com/dsebastien/obsidian-book-exporter/issues/49))
+- inline only the referenced block or section for anchored embeds, closes [Note#Heading](https://github.com/dsebastien/Note/issues/Heading) [#50](https://github.com/dsebastien/obsidian-book-exporter/issues/50) [#50](https://github.com/dsebastien/obsidian-book-exporter/issues/50)
+
 ## 0.2.0 (2026-06-30)
 
 ### Features
