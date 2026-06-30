@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.2.0 (2026-06-30)
+
+### Features
+
+- auto-open or surface a clickable path to the exported file
+
 ## 0.1.0 (2026-06-24)
 
 ### Features

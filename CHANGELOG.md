@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.1.0...0.2.0) (2026-06-30)
+
+### Features
+
+* auto-open or surface a clickable path to the exported file ([e1c0d40](https://github.com/dsebastien/obsidian-book-exporter/commit/e1c0d40e9dabfe1a355d979fa3eb4300e02cc6ae)), closes [#37](https://github.com/dsebastien/obsidian-book-exporter/issues/37)
+
 ## [0.1.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.0.8...0.1.0) (2026-06-24)
 
 ### Features
@@ -96,6 +102,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
