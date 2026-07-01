@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.2.2 (2026-07-01)
+
+### Bug Fixes
+
+- **all:** resolve Obsidian plugin directory scanner findings
+
 ## 0.2.1 (2026-06-30)
 
 ### Bug Fixes

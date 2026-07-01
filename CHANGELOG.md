@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.1...0.2.2) (2026-07-01)
+
+### Bug Fixes
+
+* **all:** resolve Obsidian plugin directory scanner findings ([70b5919](https://github.com/dsebastien/obsidian-book-exporter/commit/70b5919723173f52a69eb96d89ea28e8050ac6b1))
+
 ## [0.2.1](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.0...0.2.1) (2026-06-30)
 
 ### Bug Fixes
@@ -109,6 +115,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
