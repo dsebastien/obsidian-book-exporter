@@ -68,6 +68,7 @@
         "@eslint/js": "^9.36.0",
         "@tailwindcss/cli": "4.1.17",
         "@types/bun": "latest",
+        "@types/node": "^20",
         "commitizen": "^4.3.1",
         "conventional-changelog-cli": "5.0.0",
         "conventional-changelog-conventionalcommits": "9.1.0",
@@ -85,5 +86,8 @@
     "dependencies": {
         "immer": "11.0.1",
         "zod": "^4.1.13"
+    },
+    "overrides": {
+        "tmp": "^0.2.7"
     }
 }
