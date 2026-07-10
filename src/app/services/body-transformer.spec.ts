@@ -90,6 +90,60 @@ describe('BodyTransformer image handling (issue #5)', () => {
     })
 })
 
+describe('BodyTransformer image handling — absolute filesystem paths (issue #51)', () => {
+    it('copies an image referenced by an absolute path instead of leaving the raw path in the output', async () => {
+        const resources = await makeResourcesDir()
+        const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'bt-abs-src-'))
+        tempDirs.push(scratch)
+        const absImagePath = path.join(scratch, 'landscape.png')
+        await fs.writeFile(absImagePath, 'raw-bytes')
+
+        // Not resolvable via the vault's link index — mirrors an
+        // absolute-path reference left behind by another tool.
+        const app = makeApp([])
+        const bt = new BodyTransformer(app, resources, opts)
+
+        const out = await bt.transform(`![alt](${absImagePath})`, makeFile('note.md'))
+
+        // The raw OS path must never reach the manuscript: Typst treats a
+        // leading `/` as root-relative to its own sandbox rather than an OS
+        // absolute path, so passing it through produces an unresolvable,
+        // duplicated path instead of a clean "file not found".
+        expect(out).not.toContain(absImagePath)
+        expect(out).toBe('![alt](_resources/landscape.png)')
+        expect(await fs.readFile(path.join(resources, 'landscape.png'), 'utf8')).toBe('raw-bytes')
+    })
+
+    it('gives same-basename absolute-path images distinct output files (issue #5 parity)', async () => {
+        const resources = await makeResourcesDir()
+        const scratchA = await fs.mkdtemp(path.join(os.tmpdir(), 'bt-abs-a-'))
+        const scratchB = await fs.mkdtemp(path.join(os.tmpdir(), 'bt-abs-b-'))
+        tempDirs.push(scratchA, scratchB)
+        const imgA = path.join(scratchA, 'diagram.png')
+        const imgB = path.join(scratchB, 'diagram.png')
+        await fs.writeFile(imgA, 'bytes-a')
+        await fs.writeFile(imgB, 'bytes-b')
+
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+        const out = await bt.transform(`![[${imgA}]]\n![[${imgB}]]`, makeFile('note.md'))
+
+        expect(out).toContain('(_resources/diagram.png)')
+        expect(out).toContain('(_resources/diagram-2.png)')
+        expect(await fs.readFile(path.join(resources, 'diagram.png'), 'utf8')).toBe('bytes-a')
+        expect(await fs.readFile(path.join(resources, 'diagram-2.png'), 'utf8')).toBe('bytes-b')
+    })
+
+    it('leaves the reference unresolved when the absolute path does not exist on disk', async () => {
+        const resources = await makeResourcesDir()
+        const bt = new BodyTransformer(makeApp([]), resources, opts)
+        const missing = path.join(os.tmpdir(), 'bt-abs-missing-1234', 'x.png')
+
+        const out = await bt.transform(`![alt](${missing})`, makeFile('note.md'))
+
+        expect(out).toBe(`![alt](${missing})`)
+    })
+})
+
 describe('BodyTransformer markup rewriting', () => {
     it('converts a callout to a fenced div', async () => {
         const resources = await makeResourcesDir()
