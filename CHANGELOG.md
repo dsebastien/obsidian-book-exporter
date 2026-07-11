@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.2...0.2.3) (2026-07-11)
+
+### Bug Fixes
+
+* **plugin:** copy absolute-path image references into _resources ([#51](https://github.com/dsebastien/obsidian-book-exporter/issues/51)) ([#52](https://github.com/dsebastien/obsidian-book-exporter/issues/52)) ([fcd8d54](https://github.com/dsebastien/obsidian-book-exporter/commit/fcd8d54a92cb0b4d66b7a4c4623c4efb478e835c))
+
 ## [0.2.2](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.1...0.2.2) (2026-07-01)
 
 ### Bug Fixes
@@ -115,6 +121,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 

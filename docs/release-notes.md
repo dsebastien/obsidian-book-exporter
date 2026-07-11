@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.2.3 (2026-07-11)
+
+### Bug Fixes
+
+- **plugin:** copy absolute-path image references into \_resources ([#51](https://github.com/dsebastien/obsidian-book-exporter/issues/51)) ([#52](https://github.com/dsebastien/obsidian-book-exporter/issues/52))
+
 ## 0.2.2 (2026-07-01)
 
 ### Bug Fixes
