@@ -739,8 +739,24 @@ export class BodyTransformer {
 
     private async copyAsset(target: string, source: TFile): Promise<string | null> {
         const file = this.app.metadataCache.getFirstLinkpathDest(target, source.path)
-        if (!(file instanceof TFile)) return null
+        if (file instanceof TFile) {
+            return this.copyVaultAsset(file)
+        }
+        // Not resolvable as a vault-relative link. If it's an absolute
+        // filesystem path (e.g. left behind by another tool, or a note
+        // authored outside Obsidian), emitting it unchanged would leave an
+        // OS-absolute path in the generated Typst source. Typst treats a
+        // leading `/` as *root-relative to its own sandbox*, not as an OS
+        // absolute path, so the path gets silently prefixed with the temp
+        // dir instead of failing cleanly (issue #51). Copy it into
+        // `_resources/` like any other asset instead.
+        if (path.isAbsolute(target)) {
+            return this.copyFilesystemAsset(target)
+        }
+        return null
+    }
 
+    private async copyVaultAsset(file: TFile): Promise<string | null> {
         const ext = file.extension.toLowerCase()
         if (!IMAGE_EXTENSIONS.has(ext)) return null
 
@@ -760,6 +776,31 @@ export class BodyTransformer {
 
         const rel = `_resources/${safeName}`
         this.copiedByPath.set(file.path, rel)
+        return rel
+    }
+
+    private async copyFilesystemAsset(absPath: string): Promise<string | null> {
+        const ext = path.extname(absPath).slice(1).toLowerCase()
+        if (!IMAGE_EXTENSIONS.has(ext)) return null
+
+        const cached = this.copiedByPath.get(absPath)
+        if (cached !== undefined) return cached
+
+        let data: Buffer
+        try {
+            data = await fs.readFile(absPath)
+        } catch {
+            // Doesn't exist (or isn't readable) at that absolute path —
+            // fall back to the caller's existing behaviour.
+            return null
+        }
+
+        const safeName = this.uniqueAssetName(sanitizeAssetName(path.basename(absPath)))
+        const dest = path.join(this.resourcesDir, safeName)
+        await fs.writeFile(dest, new Uint8Array(data))
+
+        const rel = `_resources/${safeName}`
+        this.copiedByPath.set(absPath, rel)
         return rel
     }
 
