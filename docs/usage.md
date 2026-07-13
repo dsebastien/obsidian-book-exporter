@@ -97,7 +97,7 @@ Beyond the command palette, you can export without leaving the note: click the *
 
 ## What the compiler does
 
-1. Walks the heading tree from the manifest. Each section is rendered at its level; its linked notes are inlined in source order.
+1. Walks the heading tree from the manifest and inlines each section's linked notes in source order. Because `# H1` is reserved for the book title, authored sections start at `## H2`; the compiler **outdents** every section so the shallowest one becomes `H1` (e.g. H2 parts → H1, H3 chapters → H2). This frees the wasted top level, so inlined source-note headings now sit within the TOC depth. The book-title heading itself is emitted as `{.unnumbered .unlisted}` — the metadata title page already shows it, so it is kept out of the TOC and out of `--number-sections` numbering.
 2. **First** the manifest body itself is filtered: any top-level section whose heading matches an entry in **sections to skip** (case-insensitive) is dropped before parsing. This lets you keep authoring scaffolding (`## Title Options`, `## Target Audience`, `## References`, `## Related`) inside the manifest without polluting the export.
 3. For each linked note:
     - Strips frontmatter.

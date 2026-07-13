@@ -3,6 +3,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { promises as fs } from 'node:fs'
 import type { BookExportOverrides, BookMetadata, ParsedBook } from '../domain/book-manifest.intf'
+import { TFile, type App } from 'obsidian'
 import {
     buildMetadataYaml,
     copyCitationAssets,
@@ -12,8 +13,10 @@ import {
     buildTypstPreamble,
     buildHtmlCover,
     buildHtmlCss,
-    copyCoverAsset
+    copyCoverAsset,
+    ManuscriptCompiler
 } from './manuscript-compiler'
+import type { BookSection } from '../domain/book-manifest.intf'
 import { DEFAULT_SETTINGS } from '../types/plugin-settings.intf'
 
 function makeBook(metadata: Partial<BookMetadata> = {}): ParsedBook {
@@ -282,5 +285,79 @@ describe('buildHtmlCss (issue #36)', () => {
         expect(out).not.toContain('margin:')
         expect(out).not.toContain('font-size:')
         expect(out).not.toContain('line-height:')
+    })
+})
+
+describe('ManuscriptCompiler heading levels (issue #53)', () => {
+    function makeFile(p: string): TFile {
+        const name = p.split('/').pop() ?? p
+        const dot = name.lastIndexOf('.')
+        return Object.assign(new TFile(), {
+            path: p,
+            name,
+            extension: dot >= 0 ? name.slice(dot + 1) : '',
+            basename: dot >= 0 ? name.slice(0, dot) : name
+        })
+    }
+
+    function appWith(contents: Record<string, string>): App {
+        const byKey = new Map<string, TFile>()
+        for (const p of Object.keys(contents)) byKey.set(p, makeFile(p))
+        return {
+            metadataCache: {
+                getFirstLinkpathDest: (p: string): TFile | null => byKey.get(p) ?? null
+            },
+            vault: {
+                getAbstractFileByPath: (p: string): TFile | null => byKey.get(p) ?? null,
+                readBinary: (f: TFile): Promise<ArrayBuffer> =>
+                    Promise.resolve(new TextEncoder().encode(f.path).buffer),
+                cachedRead: (f: TFile): Promise<string> => Promise.resolve(contents[f.path] ?? '')
+            }
+        } as unknown as App
+    }
+
+    function section(level: number, title: string, extra: Partial<BookSection> = {}): BookSection {
+        return { level, title, prose: '', notes: [], children: [], ...extra }
+    }
+
+    // parts (H2) → chapters (H3), a source note bulleted under a chapter.
+    const book: ParsedBook = {
+        bookNotePath: 'B.md',
+        metadata: { title: 'My Book', authors: ['Ada'], language: 'en' },
+        overrides: {},
+        maxHeadingLevel: 3,
+        sections: [
+            section(2, 'Part I', {
+                children: [
+                    section(3, 'Chapter 1', {
+                        notes: [{ filePath: 'note.md', displayTitle: 'A Source Note' }]
+                    })
+                ]
+            })
+        ]
+    }
+
+    async function compileToText(b: ParsedBook, contents: Record<string, string>): Promise<string> {
+        const tempDir = await makeTempDir()
+        const compiler = new ManuscriptCompiler(appWith(contents), DEFAULT_SETTINGS)
+        const result = await compiler.compile(b, tempDir)
+        return fs.readFile(result.manuscriptPath, 'utf8')
+    }
+
+    it('marks the book-title H1 unlisted+unnumbered so it stays out of the TOC', async () => {
+        const md = await compileToText(book, { 'note.md': '# Source\n\nsome prose' })
+        expect(md).toContain('# My Book {.unnumbered .unlisted}')
+    })
+
+    it('outdents sections so the shallowest becomes H1 and source notes fit the TOC depth', async () => {
+        const md = await compileToText(book, {
+            'note.md': '# Dropped\n\n## Inside heading\n\nprose'
+        })
+        // Part I (orig H2) → H1, Chapter 1 (orig H3) → H2.
+        expect(md).toMatch(/^# Part I$/m)
+        expect(md).toMatch(/^## Chapter 1$/m)
+        // The note's own H2 sits one level below its H2 chapter → H3, which the
+        // auto TOC depth (deepest original level = 3) now reaches.
+        expect(md).toMatch(/^### Inside heading$/m)
     })
 })

@@ -92,6 +92,14 @@ export class ManuscriptCompiler {
         const levels = collectLevels(book.sections)
         const partLevel = levels.length > 0 ? Math.min(...levels) : Number.MAX_SAFE_INTEGER
         const chapterLevel = pickChapterLevel(levels, partLevel)
+        // The manifest reserves H1 for the book title (the parser never emits a
+        // level-1 section), so authored sections always start at H2. Left as-is
+        // that wastes the top heading level: content renders one step too deep
+        // and inlined source-note headings fall past `--toc-depth`. Outdent
+        // every section by `partLevel - 1` so the shallowest section becomes H1.
+        // `--toc-depth` (auto = deepest *original* level) is left unchanged, so
+        // the freed level is exactly what pulls source notes into the TOC (#53).
+        const levelShift = levels.length > 0 ? partLevel - 1 : 0
 
         const frontMatterTitles = normaliseTitles(book.overrides.frontMatterSections ?? [])
         const hasFrontMatter = frontMatterTitles.size > 0
@@ -100,7 +108,12 @@ export class ManuscriptCompiler {
         parts.push(buildTypstPreamble(this.settings, book.overrides))
         parts.push('')
         if (hasFrontMatter) parts.push(FRONT_MATTER_OPEN)
-        parts.push(`# ${book.metadata.title}`)
+        // Metadata already drives a proper title page; this body H1 is the
+        // in-text title. `.unlisted` keeps it out of the TOC (the title page
+        // covers it) and `.unnumbered` stops `--number-sections` treating it
+        // as the first chapter. Both attributes are required for `.unlisted`
+        // to take effect in pandoc. See issue #53.
+        parts.push(`# ${book.metadata.title} {.unnumbered .unlisted}`)
         parts.push('')
 
         let isFirstAtPartLevel = true
@@ -132,6 +145,7 @@ export class ManuscriptCompiler {
                 pageBreakEnabled,
                 partLevel,
                 chapterLevel,
+                levelShift,
                 noteSeparator
             )
             parts.push(rendered)
@@ -203,12 +217,18 @@ export class ManuscriptCompiler {
         pageBreakEnabled: boolean,
         partLevel: number,
         chapterLevel: number,
+        levelShift: number,
         noteSeparator: InlinedNoteSeparator
     ): Promise<string> {
         const out: string[] = []
+        // The emitted heading level is outdented by `levelShift` so the
+        // shallowest manifest section renders at H1 (see the note in
+        // `compile`). Page-break decisions below keep comparing the *original*
+        // `section.level`, which is why partLevel/chapterLevel are unshifted.
+        const emittedLevel = Math.max(1, section.level - levelShift)
         if (prependPageBreak === 'part') out.push(PAGE_BREAK_PART)
         else if (prependPageBreak === 'chapter') out.push(PAGE_BREAK_CHAPTER)
-        out.push(`${'#'.repeat(section.level)} ${section.title}`)
+        out.push(`${'#'.repeat(emittedLevel)} ${section.title}`)
         out.push('')
 
         if (section.prose.length > 0) {
@@ -217,9 +237,9 @@ export class ManuscriptCompiler {
         }
 
         let isFirstNote = true
-        const subheadingLevel = Math.min(6, section.level + 1)
+        const subheadingLevel = Math.min(6, emittedLevel + 1)
         for (const ref of section.notes) {
-            const inlined = await this.inlineNote(ref, section.level, transformer, sectionsToSkip)
+            const inlined = await this.inlineNote(ref, emittedLevel, transformer, sectionsToSkip)
             if (inlined.trim().length === 0) continue
             if (!isFirstNote) {
                 const sep = renderNoteSeparator(noteSeparator)
@@ -260,6 +280,7 @@ export class ManuscriptCompiler {
                 pageBreakEnabled,
                 partLevel,
                 chapterLevel,
+                levelShift,
                 noteSeparator
             )
             out.push(rendered)
