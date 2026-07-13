@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.2.4 (2026-07-13)
+
+### Bug Fixes
+
+- **plugin:** keep book title out of the TOC and outdent sections ([#53](https://github.com/dsebastien/obsidian-book-exporter/issues/53))
+
 ## 0.2.3 (2026-07-11)
 
 ### Bug Fixes

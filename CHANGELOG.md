@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.3...0.2.4) (2026-07-13)
+
+### Bug Fixes
+
+* **plugin:** keep book title out of the TOC and outdent sections ([#53](https://github.com/dsebastien/obsidian-book-exporter/issues/53)) ([035e89c](https://github.com/dsebastien/obsidian-book-exporter/commit/035e89c01b52728266e4856f26426ab58e1e506c))
+
 ## [0.2.3](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.2...0.2.3) (2026-07-11)
 
 ### Bug Fixes
@@ -121,6 +127,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
