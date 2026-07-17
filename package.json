@@ -1,6 +1,6 @@
 {
     "name": "book-exporter",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "Export books (one manifest note + linked chapter notes) to EPUB and PDF via Pandoc.",
     "author": {
         "name": "Sébastien Dubois",
