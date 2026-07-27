@@ -8,6 +8,7 @@ import { log, setDebugLogging } from '../utils/log'
 import { probeBinary, resolveEngineBinary, ENGINE_INSTALL_HINT } from '../utils/binary-probe'
 import { buildSpawnEnv } from '../utils/spawn-env'
 import { PreviewTempDirs } from '../utils/temp-dirs'
+import { registerWhatsNewDialog } from './whats-new'
 
 export class BookExporterPlugin extends Plugin {
     settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
@@ -21,6 +22,8 @@ export class BookExporterPlugin extends Plugin {
     )
 
     override async onload(): Promise<void> {
+        // Must run before anything can call saveData (fresh-install detection)
+        registerWhatsNewDialog(this)
         log('Loading Book Exporter', 'debug')
         await this.loadSettings()
         this.addSettingTab(new BookExporterSettingTab(this.app, this))

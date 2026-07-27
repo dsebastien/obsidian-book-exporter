@@ -200,6 +200,7 @@ Citations are enabled automatically when the manifest frontmatter has a `bibliog
 
 - **Local images** embedded with `![[image.png]]` are copied into the manuscript's `_resources/` folder and inlined automatically. Make sure the embed resolves in Obsidian first.
 - **Remote (`http(s)`) images** in note bodies can't be fetched by the Typst engine and would abort the export, so they're converted to a plain link instead of an inline image. Download the image into your vault and embed it locally if you need it printed.
+- **What's new after updates.** After a plugin update, a one-time dialog shows the release notes you just received (including skipped versions) with ways to support development. Never shown on fresh installs or regular restarts.
 - The **cover** is the exception: `cover:` accepts an `http(s)` URL and is downloaded to the temp dir before pandoc runs.
 
 ## Status
