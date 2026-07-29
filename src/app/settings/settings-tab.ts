@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
+import { BUY_ME_A_COFFEE_URL, renderSupportSection } from '../ui/support-links'
 
 const PDF_ENGINES: PdfEngine[] = ['typst', 'xelatex', 'tectonic', 'weasyprint']
 const FORMATS: ExportFormat[] = ['epub', 'pdf']
@@ -453,20 +454,13 @@ export class BookExporterSettingTab extends PluginSettingTab {
     }
 
     private renderSupport(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Support').setHeading()
-        new Setting(containerEl).setName('Follow Sébastien on X').addButton((b) =>
-            b
-                .setCta()
-                .setButtonText('@dSebastien')
-                .onClick(() => window.open('https://x.com/dSebastien'))
-        )
-        new Setting(containerEl)
-            .setName('Buy me a coffee')
-            .addButton((b) =>
-                b
-                    .setButtonText('☕ Donate')
-                    .onClick(() => window.open('https://www.buymeacoffee.com/dsebastien'))
-            )
+        renderSupportSection(containerEl, (el) => {
+            new Setting(el)
+                .setName('Buy me a coffee')
+                .addButton((b) =>
+                    b.setButtonText('☕ Donate').onClick(() => window.open(BUY_ME_A_COFFEE_URL))
+                )
+        })
     }
 }
 
