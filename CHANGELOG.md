@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.3.0...0.4.0) (2026-07-29)
+
+### Features
+
+* **plugin:** add Knowii community to the what's new dialog and harden it ([6ce1624](https://github.com/dsebastien/obsidian-book-exporter/commit/6ce162458187ed7c94f1393ed6c4d839e91e774c))
+
 ## [0.3.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.2.5...0.3.0) (2026-07-27)
 
 ### Features
@@ -135,6 +141,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
