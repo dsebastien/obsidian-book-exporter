@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.4.0...0.5.0) (2026-07-29)
+
+### Features
+
+* **plugin:** aggregate what's new dialogs across simultaneously updated plugins ([4de2a88](https://github.com/dsebastien/obsidian-book-exporter/commit/4de2a88e38635da0c5874397f918077a7beb36ef))
+
 ## [0.4.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.3.0...0.4.0) (2026-07-29)
 
 ### Features
@@ -141,6 +147,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
