@@ -11,7 +11,7 @@ import { PreviewTempDirs } from '../utils/temp-dirs'
 import { registerWhatsNewView } from './whats-new'
 
 export class BookExporterPlugin extends Plugin {
-    settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
+    override settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
 
     /**
      * Temp dirs produced by the preview command, cleaned on unload and before

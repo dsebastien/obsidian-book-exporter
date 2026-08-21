@@ -80,3 +80,9 @@
 .book-exporter-whats-new-body .book-exporter-whats-new-links .setting-item-description {
     @apply pr-3;
 }
+
+/* Declarative settings: rows that render a full-width section (support links)
+   instead of the standard name/control layout. */
+.book-exporter-settings-embed {
+    @apply block;
+}
