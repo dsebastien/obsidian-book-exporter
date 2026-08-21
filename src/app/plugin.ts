@@ -102,10 +102,17 @@ export class BookExporterPlugin extends Plugin {
 
     /**
      * Mutate settings via an Immer draft, persist, and return.
+     *
+     * Persist-then-commit on purpose: the in-memory swap happens only after
+     * saveData() succeeds. The declarative settings tab rejects its
+     * setControlValue promise when this throws, and the framework then rolls
+     * the control back to getControlValue's answer — which must be the value
+     * actually on disk, not an optimistic mutation that never landed.
      */
     async updateSettings(mutator: (draft: Draft<PluginSettings>) => void): Promise<void> {
-        this.settings = produce(this.settings, mutator)
+        const next = produce(this.settings, mutator)
+        await this.saveData(next)
+        this.settings = next
         setDebugLogging(this.settings.debug)
-        await this.saveSettings()
     }
 }
