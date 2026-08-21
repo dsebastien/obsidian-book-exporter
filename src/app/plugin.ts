@@ -109,10 +109,22 @@ export class BookExporterPlugin extends Plugin {
      * the control back to getControlValue's answer — which must be the value
      * actually on disk, not an optimistic mutation that never landed.
      */
-    async updateSettings(mutator: (draft: Draft<PluginSettings>) => void): Promise<void> {
-        const next = produce(this.settings, mutator)
-        await this.saveData(next)
-        this.settings = next
-        setDebugLogging(this.settings.debug)
+    /** Serializes settings writes; see updateSettings. */
+    private settingsWriteChain: Promise<void> = Promise.resolve()
+
+    updateSettings(mutator: (draft: Draft<PluginSettings>) => void): Promise<void> {
+        // Serialized persist-then-commit: writes queue and each mutation
+        // derives from the previous COMMITTED state — overlapping calls would
+        // otherwise produce from the same base across the save await and
+        // silently drop the earlier edit.
+        const run = async (): Promise<void> => {
+            const next = produce(this.settings, mutator)
+            await this.saveData(next)
+            this.settings = next
+            setDebugLogging(this.settings.debug)
+        }
+        const p = this.settingsWriteChain.then(run, run)
+        this.settingsWriteChain = p.catch(() => {})
+        return p
     }
 }
