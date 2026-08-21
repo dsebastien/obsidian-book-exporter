@@ -180,7 +180,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Cover frontmatter property')
             .setDesc(
-                'Frontmatter key read for the book cover. Value can be a vault-relative path, an absolute path, an [[wikilink]], or an http(s) URL (downloaded to the temp folder before pandoc runs). Default: cover.'
+                'Frontmatter key read for the book cover. Value can be a vault-relative path, an absolute path, an [[wikilink]], or an http(s) URL (downloaded to the temp folder before Pandoc runs). Default: cover.'
             )
             .addText((t) =>
                 t
@@ -458,7 +458,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
             new Setting(el)
                 .setName('Buy me a coffee')
                 .addButton((b) =>
-                    b.setButtonText('☕ Donate').onClick(() => window.open(BUY_ME_A_COFFEE_URL))
+                    b.setButtonText('Donate ☕').onClick(() => window.open(BUY_ME_A_COFFEE_URL))
                 )
         })
     }

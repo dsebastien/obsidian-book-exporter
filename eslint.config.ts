@@ -26,6 +26,8 @@ export default tseslint.config(
             globals: {
                 ...globals.node,
                 ...globals.browser,
+                // Tests and build tooling run under the Bun runtime
+                Bun: 'readonly',
                 // Obsidian global functions
                 createDiv: 'readonly',
                 createEl: 'readonly',
@@ -55,8 +57,46 @@ export default tseslint.config(
             'no-prototype-builtins': 'off',
             // Allow confirm for delete confirmations
             'no-alert': 'off',
-            // Disable sentence case rule - it has false positives for already-correct text
-            'obsidianmd/ui/sentence-case': 'off'
+            // Never disable obsidianmd/* rules here: the community catalog
+            // reviewer runs its own ruleset against the git archive, so a
+            // local disable only hides the finding until submission.
+            // Brand names are the supported escape hatch for sentence-case.
+            'obsidianmd/ui/sentence-case': [
+                'error',
+                {
+                    brands: [
+                        'Knowii',
+                        'X',
+                        'GitHub Sponsors',
+                        'Sébastien Dubois',
+                        'dSebastien',
+                        // Repo-specific tool/font/plugin names in UI copy.
+                        // NOTE: brands and acronyms are enforced BOTH ways —
+                        // listing one forces every prose occurrence to that
+                        // exact casing (e.g. 'pandoc runs' -> 'Pandoc runs').
+                        'Pandoc',
+                        'Book Exporter',
+                        'Liberation Serif',
+                        'Liberation Mono',
+                        'Obsidian'
+                    ],
+                    acronyms: ['PDF', 'EPUB', 'TOC', 'URL', 'API'],
+                    // Words with intentional casing in both forms. Never put
+                    // PATH or OS in acronyms: that would rewrite every ordinary
+                    // "path"/"os" to uppercase.
+                    ignoreWords: ['PATH', 'OS', 'Settings'],
+                    ignoreRegex: [
+                        // Single-token literals (placeholders, paths, ids)
+                        '^\\S+$',
+                        // Quoted references to literal setting/heading names
+                        '"[^"]+"',
+                        // Hyphenated acronym the tokenizer cannot match
+                        'BCP-47',
+                        // Placeholder listing actual (Title Case) headings
+                        '^Related, References, Title Options, Target Audience$'
+                    ]
+                }
+            ]
         }
     }
 )
