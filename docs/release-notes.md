@@ -1,5 +1,59 @@
 # Release Notes
 
+## 1.0.0 (2026-09-23)
+
+### ⚠ BREAKING CHANGES
+
+- **plugin:** minAppVersion moves 1.8.7 -> 1.13.0.
+
+Ports the imperative settings tab to the declarative API following the
+template (2575a89) and the ARDS port. This tab is a flat form of ~30
+scalars, so nearly everything becomes a plain `control` definition keyed
+by its PluginSettings field name, bridged through
+getControlValue/setControlValue to plugin.updateSettings — the single
+persistence path. setControlValue rejects on failure (type mismatches
+included) so the pane rolls back to the stored truth.
+
+Behavior parity notes:
+
+- List-valued fields (defaultFormats, defaultAuthors, sectionsToSkip)
+  keep their comma-separated text presentation and the exact
+  parseFormats/parseList normalization the imperative tab used.
+- Empty-string collapses survive: pandocPath -> 'pandoc',
+  defaultLanguage -> 'en', coverProperty -> 'cover'.
+- noteEmbedMaxDepth and tocDepthDefault become number controls with
+  min/step + validate and deliberately NO defaultValue (a cleared field
+  is refused inline, not silently reset).
+- Dropdowns (defaultPdfEngine, inlinedNoteSeparator) reject unknown
+  values instead of casting.
+- The support section stays an imperative render row inside its own
+  settingEl.
+
+Also: obsidian typings 1.12.0 -> 1.13.1 (Plugin.settings now needs
+`override`), guard spec + AGENTS.md "Declarative settings" section
+ported from the template.
+
+Settings pane rendering needs eyes-on verification in Obsidian —
+nothing in CI renders it.
+
+### Features
+
+- **build:** fail the build on a lockfile the catalog review cannot parse
+- **build:** make the rule floor check that it is still wired in
+- **build:** refuse commits that loosen the rules instead of fixing the finding
+- **plugin:** declare settings via getSettingDefinitions (Obsidian 1.13)
+- **plugin:** show what's new in a tab instead of a modal dialog
+- **plugin:** surface support CTAs everywhere users can see them
+
+### Bug Fixes
+
+- **build:** harden the release path from the template
+- **build:** inline the changelog via a define, stop shrinking the brand list
+- **build:** port template catalog-reviewer + toolchain fixes (2.8.0+)
+- **deps:** move the fast-uri override off the vulnerable line
+- **plugin:** persist settings before committing them to memory
+- **plugin:** serialize settings writes — overlapping edits lost data
+
 ## 0.5.0 (2026-07-29)
 
 ### Features

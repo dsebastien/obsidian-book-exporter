@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.5.0...1.0.0) (2026-09-23)
+
+### ⚠ BREAKING CHANGES
+
+* **plugin:** minAppVersion moves 1.8.7 -> 1.13.0.
+
+Ports the imperative settings tab to the declarative API following the
+template (2575a89) and the ARDS port. This tab is a flat form of ~30
+scalars, so nearly everything becomes a plain `control` definition keyed
+by its PluginSettings field name, bridged through
+getControlValue/setControlValue to plugin.updateSettings — the single
+persistence path. setControlValue rejects on failure (type mismatches
+included) so the pane rolls back to the stored truth.
+
+Behavior parity notes:
+- List-valued fields (defaultFormats, defaultAuthors, sectionsToSkip)
+  keep their comma-separated text presentation and the exact
+  parseFormats/parseList normalization the imperative tab used.
+- Empty-string collapses survive: pandocPath -> 'pandoc',
+  defaultLanguage -> 'en', coverProperty -> 'cover'.
+- noteEmbedMaxDepth and tocDepthDefault become number controls with
+  min/step + validate and deliberately NO defaultValue (a cleared field
+  is refused inline, not silently reset).
+- Dropdowns (defaultPdfEngine, inlinedNoteSeparator) reject unknown
+  values instead of casting.
+- The support section stays an imperative render row inside its own
+  settingEl.
+
+Also: obsidian typings 1.12.0 -> 1.13.1 (Plugin.settings now needs
+`override`), guard spec + AGENTS.md "Declarative settings" section
+ported from the template.
+
+Settings pane rendering needs eyes-on verification in Obsidian —
+nothing in CI renders it.
+
+### Features
+
+* **build:** fail the build on a lockfile the catalog review cannot parse ([eb1cb54](https://github.com/dsebastien/obsidian-book-exporter/commit/eb1cb5475e5d4a48120d825123c93c2494131aa3))
+* **build:** make the rule floor check that it is still wired in ([69bf328](https://github.com/dsebastien/obsidian-book-exporter/commit/69bf32895ec5408df56bba1f8e599a939c7df2a6))
+* **build:** refuse commits that loosen the rules instead of fixing the finding ([4ad42ba](https://github.com/dsebastien/obsidian-book-exporter/commit/4ad42ba22aa3f77367d2f852f6687ed22db31388))
+* **plugin:** declare settings via getSettingDefinitions (Obsidian 1.13) ([1362540](https://github.com/dsebastien/obsidian-book-exporter/commit/13625408a6ae0deb9d5893ebbbf25474e239c9fc))
+* **plugin:** show what's new in a tab instead of a modal dialog ([ec49cf6](https://github.com/dsebastien/obsidian-book-exporter/commit/ec49cf6c1571419950556544f3a52703117f673c))
+* **plugin:** surface support CTAs everywhere users can see them ([05b51d3](https://github.com/dsebastien/obsidian-book-exporter/commit/05b51d3957450ae16ab23701a60bb68f76132dd7))
+
+### Bug Fixes
+
+* **build:** harden the release path from the template ([5bf870c](https://github.com/dsebastien/obsidian-book-exporter/commit/5bf870c1f4b1b240101f95f7066846c556c5f62c))
+* **build:** inline the changelog via a define, stop shrinking the brand list ([9bc52bf](https://github.com/dsebastien/obsidian-book-exporter/commit/9bc52bfbe2d584f354991e00200bd80f2d898989))
+* **build:** port template catalog-reviewer + toolchain fixes (2.8.0+) ([545fcfe](https://github.com/dsebastien/obsidian-book-exporter/commit/545fcfe8ff5e8bd5a9e331690ec9de36b1c4c29a))
+* **deps:** move the fast-uri override off the vulnerable line ([8b6e18c](https://github.com/dsebastien/obsidian-book-exporter/commit/8b6e18c97914df383330a13f16cd595c320b14aa))
+* **plugin:** persist settings before committing them to memory ([3426672](https://github.com/dsebastien/obsidian-book-exporter/commit/34266729ac12cd44eb07691161d1278132e333de))
+* **plugin:** serialize settings writes — overlapping edits lost data ([aae05e8](https://github.com/dsebastien/obsidian-book-exporter/commit/aae05e8e796f3f6840295341a3a0b6416534df29))
+
 ## [0.5.0](https://github.com/dsebastien/obsidian-book-exporter/compare/0.4.0...0.5.0) (2026-07-29)
 
 ### Features
@@ -147,6 +200,7 @@ All notable changes to this project will be documented in this file.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
