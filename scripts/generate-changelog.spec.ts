@@ -2,7 +2,16 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { unlinkSync, writeFileSync } from 'node:fs'
 import { neutraliseMentionLinks } from './generate-changelog.ts'
 
-const TEST_CHANGELOG = 'CHANGELOG.test.md'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+/**
+ * Written outside the repo, under a name unique to this process: a run that
+ * dies before `afterAll` used to leave an untracked `CHANGELOG.test.md` in the
+ * repo root, which `git add -A` then sweeps into the next commit, and two runs
+ * sharing one checkout raced on the same path.
+ */
+const TEST_CHANGELOG = join(tmpdir(), `changelog-spec-${process.pid}-${Date.now()}.md`)
 
 describe('getLatestChangelogEntry', () => {
     beforeAll(() => {
