@@ -1,5 +1,13 @@
 # Release Notes
 
+## 1.0.1 (2026-09-28)
+
+### Bug Fixes
+
+- **build:** name the last release before a floor raise in versions.json
+- **build:** rebuild versions.json from the published releases
+- **plugin:** keep the support block from stacking on every settings refresh
+
 ## 1.0.0 (2026-09-23)
 
 ### ⚠ BREAKING CHANGES
