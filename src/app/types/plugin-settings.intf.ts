@@ -155,33 +155,48 @@ export interface PluginSettings {
     debug: boolean
 }
 
-export const DEFAULT_SETTINGS: PluginSettings = {
-    pandocPath: 'pandoc',
-    pdfEnginePath: '',
-    extraPath: '',
-    defaultOutputDir: '',
-    defaultPdfEngine: 'typst',
-    defaultLanguage: 'en',
-    defaultAuthors: [],
-    coverProperty: 'cover',
-    defaultMainFont: 'Liberation Serif',
-    defaultMonoFont: 'Liberation Mono',
-    typstImageWidth: '100%',
-    sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
-    inlinedNoteSeparator: 'none',
-    inlineNoteEmbeds: false,
-    noteEmbedMaxDepth: 3,
-    numberSections: false,
-    pageSize: '',
-    pageMargin: '',
-    lineSpacing: '',
-    baseFontSize: '',
-    includeTocByDefault: true,
-    tocDepthAuto: true,
-    tocDepthDefault: 2,
-    pageBreakPerChapterDefault: true,
-    defaultFormats: ['epub', 'pdf'],
-    openAfterExport: true,
-    keepTempFiles: false,
-    debug: false
+/**
+ * A fresh default settings object, safe to hand to Immer.
+ *
+ * `produce` deep-freezes what it returns, including any subtree it shares
+ * with its base. Producing from the shared DEFAULT_SETTINGS froze that
+ * constant (and its arrays) for the rest of the process, so any later code
+ * or test touching it failed with "Attempted to assign to readonly
+ * property". Produce from this instead, and keep it deep-fresh: build
+ * nested arrays and objects as new values, never by spreading DEFAULT_SETTINGS.
+ */
+export function createDefaultSettings(): PluginSettings {
+    return {
+        pandocPath: 'pandoc',
+        pdfEnginePath: '',
+        extraPath: '',
+        defaultOutputDir: '',
+        defaultPdfEngine: 'typst',
+        defaultLanguage: 'en',
+        defaultAuthors: [],
+        coverProperty: 'cover',
+        defaultMainFont: 'Liberation Serif',
+        defaultMonoFont: 'Liberation Mono',
+        typstImageWidth: '100%',
+        sectionsToSkip: ['Related', 'References', 'Title Options', 'Target Audience'],
+        inlinedNoteSeparator: 'none',
+        inlineNoteEmbeds: false,
+        noteEmbedMaxDepth: 3,
+        numberSections: false,
+        pageSize: '',
+        pageMargin: '',
+        lineSpacing: '',
+        baseFontSize: '',
+        includeTocByDefault: true,
+        tocDepthAuto: true,
+        tocDepthDefault: 2,
+        pageBreakPerChapterDefault: true,
+        defaultFormats: ['epub', 'pdf'],
+        openAfterExport: true,
+        keepTempFiles: false,
+        debug: false
+    }
 }
+
+/** The defaults, for reading and comparing. Never produce from it. */
+export const DEFAULT_SETTINGS: PluginSettings = createDefaultSettings()

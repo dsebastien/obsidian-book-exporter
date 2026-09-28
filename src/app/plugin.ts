@@ -1,7 +1,11 @@
 import { Notice, Plugin } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import { produce, type Draft } from 'immer'
-import { DEFAULT_SETTINGS, type PluginSettings } from './types/plugin-settings.intf'
+import {
+    DEFAULT_SETTINGS,
+    createDefaultSettings,
+    type PluginSettings
+} from './types/plugin-settings.intf'
 import { BookExporterSettingTab } from './settings/settings-tab'
 import { registerCommands } from './commands/commands'
 import { log, setDebugLogging } from '../utils/log'
@@ -11,7 +15,7 @@ import { PreviewTempDirs } from '../utils/temp-dirs'
 import { registerWhatsNewView } from './whats-new'
 
 export class BookExporterPlugin extends Plugin {
-    override settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
+    override settings: PluginSettings = produce(createDefaultSettings(), () => {})
 
     /**
      * Temp dirs produced by the preview command, cleaned on unload and before
@@ -85,7 +89,7 @@ export class BookExporterPlugin extends Plugin {
 
     async loadSettings(): Promise<void> {
         const loaded = (await this.loadData()) as Partial<PluginSettings> | null
-        this.settings = produce(DEFAULT_SETTINGS, (draft: Draft<PluginSettings>) => {
+        this.settings = produce(createDefaultSettings(), (draft: Draft<PluginSettings>) => {
             if (loaded === null) return
             for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof PluginSettings)[]) {
                 const value = loaded[key]
