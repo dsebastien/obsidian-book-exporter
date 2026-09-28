@@ -511,8 +511,9 @@ export class BookExporterSettingTab extends PluginSettingTab {
                         setting.settingEl.addClass('book-exporter-settings-embed')
                         setting.infoEl.remove()
                         // In a wrapper removed by the returned cleanup: update() re-runs
-                        // this hook on the SAME row and only resets its control area, so
-                        // content appended straight to settingEl would pile up.
+                        // this hook on the SAME row and only resets its name, description
+                        // and control area, so content appended straight to settingEl
+                        // would pile up.
                         const blockEl = setting.settingEl.createDiv()
                         renderSupportSection(blockEl, (el) => {
                             new Setting(el)
