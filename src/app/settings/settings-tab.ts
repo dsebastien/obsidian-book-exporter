@@ -507,10 +507,14 @@ export class BookExporterSettingTab extends PluginSettingTab {
                 {
                     name: 'Support',
                     searchable: false,
-                    render: (setting): void => {
+                    render: (setting): (() => void) => {
                         setting.settingEl.addClass('book-exporter-settings-embed')
                         setting.infoEl.remove()
-                        renderSupportSection(setting.settingEl, (el) => {
+                        // In a wrapper removed by the returned cleanup: update() re-runs
+                        // this hook on the SAME row and only resets its control area, so
+                        // content appended straight to settingEl would pile up.
+                        const blockEl = setting.settingEl.createDiv()
+                        renderSupportSection(blockEl, (el) => {
                             new Setting(el)
                                 .setName('Buy me a coffee')
                                 .addButton((b) =>
@@ -519,6 +523,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
                                         .onClick(() => window.open(BUY_ME_A_COFFEE_URL))
                                 )
                         })
+                        return () => blockEl.remove()
                     }
                 }
             ]
