@@ -88,7 +88,12 @@ export class BookExporterPlugin extends Plugin {
     }
 
     async loadSettings(): Promise<void> {
-        const loaded = (await this.loadData()) as Partial<PluginSettings> | null
+        // loadData() resolves null when data.json is missing, but undefined
+        // (or any JSON value) is possible too: anything that is not an object
+        // means "nothing stored", never a crash on the first key lookup.
+        const data: unknown = await this.loadData()
+        const loaded =
+            typeof data === 'object' && data !== null ? (data as Partial<PluginSettings>) : null
         this.settings = produce(createDefaultSettings(), (draft: Draft<PluginSettings>) => {
             if (loaded === null) return
             for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof PluginSettings)[]) {

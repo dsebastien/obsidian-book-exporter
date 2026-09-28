@@ -39,6 +39,16 @@ describe('default settings', () => {
         expectDefaultsNotFrozen()
     })
 
+    test('loadSettings falls back to the defaults when loadData resolves undefined', async () => {
+        // The first key lookup threw on undefined; only null was guarded.
+        const plugin = pluginWithStoredData(undefined)
+
+        await plugin.loadSettings()
+
+        expect(plugin.settings).toEqual(DEFAULT_SETTINGS)
+        expectDefaultsNotFrozen()
+    })
+
     test('loadSettings with stored data never freezes the defaults it keeps', async () => {
         // Only pandocPath is stored: the arrays still come from the base.
         const plugin = pluginWithStoredData({ pandocPath: '/usr/bin/pandoc' })
