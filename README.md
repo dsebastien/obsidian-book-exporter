@@ -186,7 +186,7 @@ The plugin couldn't launch the binary. Install the tool (see [External tools](#e
 
 - Confirm it runs from a terminal (`pandoc --version`, `typst --version`).
 - On macOS, Obsidian launches with a stripped `$PATH` — see [macOS PATH issue](#macos-pandoc-not-found--typst-not-found--xelatex-not-found) for auto-detection and the explicit path settings.
-- On any OS you can set **Pandoc path**, **PDF engine path**, and **Extra PATH directories** in settings to point at the binaries directly.
+- On any OS you can set **Pandoc path**, **PDF engine path**, and **Extra PATH directories** in settings to point at the binaries directly. Each one has a value per system (Windows, Linux, macOS), so a vault that syncs between devices keeps working on each of them.
 
 ### Citations render as raw `@tokens` or the reference list is missing
 

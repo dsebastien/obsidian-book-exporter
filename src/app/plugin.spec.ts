@@ -9,6 +9,8 @@ function expectDefaultsNotFrozen(): void {
     expect(Object.isFrozen(DEFAULT_SETTINGS.defaultAuthors)).toBe(false)
     expect(Object.isFrozen(DEFAULT_SETTINGS.sectionsToSkip)).toBe(false)
     expect(Object.isFrozen(DEFAULT_SETTINGS.defaultFormats)).toBe(false)
+    expect(Object.isFrozen(DEFAULT_SETTINGS.platformPaths)).toBe(false)
+    expect(Object.isFrozen(DEFAULT_SETTINGS.platformPaths.windows)).toBe(false)
 }
 
 function pluginWithStoredData(data: unknown): BookExporterPlugin {
@@ -70,5 +72,54 @@ describe('default settings', () => {
         expect(two.sectionsToSkip).not.toContain('Extra')
         expect(two.defaultFormats).toEqual(['epub', 'pdf'])
         expect(DEFAULT_SETTINGS.defaultAuthors).toEqual([])
+    })
+})
+
+describe('per-system paths', () => {
+    test('loadSettings completes a partial platformPaths object', async () => {
+        const plugin = pluginWithStoredData({
+            pandocPath: 'pandoc',
+            platformPaths: { windows: { pandocPath: ' C:/Pandoc/pandoc.exe ' }, linux: 42 }
+        })
+
+        await plugin.loadSettings()
+
+        expect(plugin.settings.platformPaths.windows).toEqual({
+            pandocPath: 'C:/Pandoc/pandoc.exe',
+            pdfEnginePath: '',
+            extraPath: '',
+            defaultOutputDir: ''
+        })
+        expect(plugin.settings.platformPaths.linux.pandocPath).toBe('')
+        expect(plugin.settings.platformPaths.macos.defaultOutputDir).toBe('')
+        expectDefaultsNotFrozen()
+    })
+
+    test('settings stored before per-system paths load unchanged', async () => {
+        const plugin = pluginWithStoredData({
+            pandocPath: '/usr/bin/pandoc',
+            defaultOutputDir: '~/Books'
+        })
+
+        await plugin.loadSettings()
+
+        expect(plugin.settings.platformPaths).toEqual(DEFAULT_SETTINGS.platformPaths)
+        const effective = plugin.effectiveSettings()
+        expect(effective.pandocPath).toBe('/usr/bin/pandoc')
+        expect(effective.defaultOutputDir).toBe('~/Books')
+    })
+
+    test('effectiveSettings uses the value of the system the device runs', async () => {
+        // pluginWithStoredData skips the constructor, so the system is set by hand.
+        const plugin = Object.assign(pluginWithStoredData({ pandocPath: 'pandoc' }), {
+            hostPlatform: 'linux' as const
+        })
+        await plugin.loadSettings()
+        plugin.settings = produce(plugin.settings, (d) => {
+            d.platformPaths.linux.pandocPath = '/opt/pandoc/bin/pandoc'
+            d.platformPaths.windows.pandocPath = 'C:/pandoc.exe'
+        })
+
+        expect(plugin.effectiveSettings().pandocPath).toBe('/opt/pandoc/bin/pandoc')
     })
 })

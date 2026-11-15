@@ -39,6 +39,16 @@ Two layers: **plugin settings** (apply to every book) and **per-book overrides**
 | Keep temporary files       | boolean    | false                                                 | Debug — keeps the compiled manuscript and resources after export.                                                                                                                                                                                                                                                                    |
 | Verbose console logging    | boolean    | false                                                 | Debug.                                                                                                                                                                                                                                                                                                                               |
 
+### Paths on Windows, Linux and macOS
+
+Obsidian syncs plugin settings between your devices. A path that works on Windows (`C:\Program Files\Pandoc\pandoc.exe`) does not work on Linux, and the other way around. So each path setting (**Pandoc path**, **PDF engine path**, **Extra PATH directories**, **Default output folder**) has a value for each system:
+
+- **External tools** and **Output** show the rows for the system of this device first, for example **Pandoc path on Windows (this device)**.
+- **Paths on other systems** opens a page with the rows of the other systems. Fill them in from any device.
+- The settings marked **(shared)** apply on every system that has no value of its own.
+
+An empty value uses the shared value. Settings from earlier versions keep working: they become the shared values.
+
 ## Per-book overrides (`book_export`)
 
 Add a `book_export:` block to the manifest's frontmatter. All keys are optional; missing keys fall back to the plugin setting.

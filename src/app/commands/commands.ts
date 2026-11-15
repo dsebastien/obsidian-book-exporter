@@ -99,7 +99,7 @@ async function runExport(
     requested: ExportFormat[] | null,
     target?: TFile
 ): Promise<void> {
-    if (ctx.plugin.settings.defaultOutputDir.trim().length === 0) {
+    if (ctx.plugin.effectiveSettings().defaultOutputDir.trim().length === 0) {
         new Notice(
             'Output folder is not configured. Set "Default output folder" in Settings → Book Exporter (e.g. ~/Downloads).',
             10000
@@ -110,7 +110,8 @@ async function runExport(
     if (setup === null) return
     const { book, exporter } = setup
 
-    const formats = requested ?? book.overrides.formats ?? ctx.plugin.settings.defaultFormats
+    const formats =
+        requested ?? book.overrides.formats ?? ctx.plugin.effectiveSettings().defaultFormats
     if (formats.length === 0) {
         new Notice('No export formats selected.')
         return
@@ -129,7 +130,7 @@ async function runExport(
         if (openTarget !== null) {
             notice.messageEl.addClass('mod-clickable')
             notice.messageEl.addEventListener('click', () => void openExternal(openTarget))
-            if (ctx.plugin.settings.openAfterExport) await openExternal(openTarget)
+            if (ctx.plugin.effectiveSettings().openAfterExport) await openExternal(openTarget)
         }
 
         log(
@@ -204,11 +205,11 @@ async function runPreview(ctx: CommandContext): Promise<void> {
         // Discard the previous preview's temp dir before creating a new one so
         // they don't pile up for the session (issue #6). Skipped when the user
         // has opted to keep temp files for inspection.
-        if (!ctx.plugin.settings.keepTempFiles) {
+        if (!ctx.plugin.effectiveSettings().keepTempFiles) {
             await ctx.plugin.previewTempDirs.cleanupAll()
         }
         const compiled = await exporter.compileOnly(book)
-        if (!ctx.plugin.settings.keepTempFiles) {
+        if (!ctx.plugin.effectiveSettings().keepTempFiles) {
             ctx.plugin.previewTempDirs.register(compiled.tempDir)
         }
         new Notice(`Manuscript compiled: ${compiled.manuscriptPath}`)
@@ -222,7 +223,7 @@ async function runPreview(ctx: CommandContext): Promise<void> {
 async function runValidate(ctx: CommandContext): Promise<void> {
     const file = activeBookFile(ctx)
     if (file === null) return
-    const parser = new BookParser(ctx.app, ctx.plugin.settings)
+    const parser = new BookParser(ctx.app, ctx.plugin.effectiveSettings())
     const validator = new BookValidator(ctx.app)
     try {
         const book = await parser.parse(file)
@@ -236,7 +237,7 @@ async function runValidate(ctx: CommandContext): Promise<void> {
 }
 
 async function openOutputFolder(ctx: CommandContext): Promise<void> {
-    const raw = ctx.plugin.settings.defaultOutputDir.trim()
+    const raw = ctx.plugin.effectiveSettings().defaultOutputDir.trim()
     if (raw.length === 0) {
         new Notice('Output folder is not configured. Set it in Settings → Book Exporter.')
         return
@@ -260,7 +261,7 @@ async function prepareBook(
     const file = activeBookFile(ctx, target)
     if (file === null) return null
 
-    const parser = new BookParser(ctx.app, ctx.plugin.settings)
+    const parser = new BookParser(ctx.app, ctx.plugin.effectiveSettings())
     const validator = new BookValidator(ctx.app)
     try {
         const book = await parser.parse(file)
@@ -273,7 +274,7 @@ async function prepareBook(
         // …) at export time instead of silently dropping them — see issue #27.
         const warnings = formatWarnings(report)
         if (warnings !== null) new Notice(warnings, 8000)
-        const exporter = new BookExporter(ctx.app, ctx.plugin.settings)
+        const exporter = new BookExporter(ctx.app, ctx.plugin.effectiveSettings())
         return { book, exporter }
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

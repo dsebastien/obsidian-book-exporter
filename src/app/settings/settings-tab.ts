@@ -1,8 +1,79 @@
 import { Notice, PluginSettingTab, Setting } from 'obsidian'
-import type { App, SettingDefinitionItem } from 'obsidian'
+import type { App, SettingDefinition, SettingDefinitionItem } from 'obsidian'
 import type BookExporterPlugin from '../../main'
 import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
 import { BUY_ME_A_COFFEE_URL, renderSupportSection } from '../ui/support-links'
+import {
+    HOST_PLATFORMS,
+    PLATFORM_LABELS,
+    isHostPlatform,
+    isPlatformPathKey,
+    type HostPlatform,
+    type PlatformPathKey
+} from '../domain/platform-paths'
+
+/** Control key of a per-system path: `platform.<system>.<field>`. */
+const PLATFORM_KEY_PREFIX = 'platform.'
+
+export function platformKey(platform: HostPlatform, field: PlatformPathKey): string {
+    return `${PLATFORM_KEY_PREFIX}${platform}.${field}`
+}
+
+export function parsePlatformKey(
+    key: string
+): { platform: HostPlatform; field: PlatformPathKey } | null {
+    if (!key.startsWith(PLATFORM_KEY_PREFIX)) return null
+    const [platform, field, ...rest] = key.slice(PLATFORM_KEY_PREFIX.length).split('.')
+    if (platform === undefined || field === undefined || rest.length > 0) return null
+    if (!isHostPlatform(platform) || !isPlatformPathKey(field)) return null
+    return { platform, field }
+}
+
+/** Name, short description and placeholders of each per-system path row. */
+const PLATFORM_FIELD_INFO: Record<
+    PlatformPathKey,
+    { name: string; what: string; placeholder: Record<HostPlatform, string> }
+> = {
+    pandocPath: {
+        name: 'Pandoc path',
+        what: 'Full path to the pandoc binary, or `pandoc` to rely on $PATH.',
+        placeholder: {
+            windows: 'C:\\Program Files\\Pandoc\\pandoc.exe',
+            linux: '/usr/bin/pandoc',
+            macos: '/opt/homebrew/bin/pandoc'
+        }
+    },
+    pdfEnginePath: {
+        name: 'PDF engine path',
+        what: 'Full path to the PDF engine binary (typst, xelatex, …).',
+        placeholder: {
+            windows: 'C:\\Program Files\\typst\\typst.exe',
+            linux: '/usr/bin/typst',
+            macos: '/opt/homebrew/bin/typst'
+        }
+    },
+    extraPath: {
+        name: 'Extra PATH directories',
+        what: 'Directories prepended to $PATH for pandoc and the tools it runs (`;` between entries on Windows, `:` elsewhere).',
+        placeholder: {
+            windows: 'C:\\Program Files\\Pandoc;C:\\tools',
+            linux: '/usr/local/bin:/opt/bin',
+            macos: '/opt/homebrew/bin:/Library/TeX/texbin'
+        }
+    },
+    defaultOutputDir: {
+        name: 'Default output folder',
+        what: 'Absolute folder where exported books are written. `~` is your home directory.',
+        placeholder: {
+            windows: 'C:\\Users\\me\\Documents\\Books',
+            linux: '~/Books',
+            macos: '~/Documents/Books'
+        }
+    }
+}
+
+const SHARED_SUFFIX = ' (shared)'
+const SHARED_DESC = 'Used on every system that has no value of its own. '
 
 const PDF_ENGINES: PdfEngine[] = ['typst', 'xelatex', 'tectonic', 'weasyprint']
 const FORMATS: ExportFormat[] = ['epub', 'pdf']
@@ -39,6 +110,7 @@ export class BookExporterSettingTab extends PluginSettingTab {
         return [
             this.toolsGroup(),
             this.outputGroup(),
+            this.otherPlatformsPage(),
             this.processingGroup(),
             this.renderingGroup(),
             this.debugGroup(),
@@ -65,6 +137,10 @@ export class BookExporterSettingTab extends PluginSettingTab {
 
     override getControlValue(key: string): unknown {
         const s = this.plugin.settings
+        const platformTarget = parsePlatformKey(key)
+        if (platformTarget !== null) {
+            return s.platformPaths[platformTarget.platform][platformTarget.field]
+        }
         switch (key) {
             case 'pandocPath':
                 return s.pandocPath
@@ -137,6 +213,15 @@ export class BookExporterSettingTab extends PluginSettingTab {
         const asBoolean = BookExporterSettingTab.asBoolean
         const write = async (mutator: Parameters<BookExporterPlugin['updateSettings']>[0]) => {
             await this.plugin.updateSettings(mutator)
+        }
+        const platformTarget = parsePlatformKey(key)
+        if (platformTarget !== null) {
+            // Empty is valid here: it means "use the shared value".
+            const v = asString(value).trim()
+            await write((d) => {
+                d.platformPaths[platformTarget.platform][platformTarget.field] = v
+            })
+            return
         }
         switch (key) {
             // Empty-string collapses mirror the imperative tab's behavior.
@@ -267,14 +352,19 @@ export class BookExporterSettingTab extends PluginSettingTab {
             type: 'group',
             heading: 'External tools',
             items: [
+                ...this.currentPlatformRows(['pandocPath', 'pdfEnginePath', 'extraPath']),
                 {
-                    name: 'Pandoc path',
-                    desc: 'Required. Full path to the pandoc binary, or just `pandoc` to rely on $PATH.',
+                    name: 'Pandoc path' + SHARED_SUFFIX,
+                    desc:
+                        SHARED_DESC +
+                        'Required. Full path to the pandoc binary, or just `pandoc` to rely on $PATH.',
                     control: { type: 'text', key: 'pandocPath', placeholder: 'pandoc' }
                 },
                 {
-                    name: 'PDF engine path',
-                    desc: 'Optional. Full path to the PDF engine binary (e.g. /opt/homebrew/bin/typst, /Library/TeX/texbin/xelatex). Forwarded to pandoc as `--pdf-engine=<path>`, bypassing $PATH lookup. Useful on macOS where Obsidian (Electron) starts with a stripped $PATH that does not include Homebrew or MacTeX. Leave empty to rely on $PATH. Only used when the basename matches the selected PDF engine — switching engines without updating this field falls back to $PATH lookup.',
+                    name: 'PDF engine path' + SHARED_SUFFIX,
+                    desc:
+                        SHARED_DESC +
+                        'Optional. Full path to the PDF engine binary (e.g. /opt/homebrew/bin/typst, /Library/TeX/texbin/xelatex). Forwarded to pandoc as `--pdf-engine=<path>`, bypassing $PATH lookup. Useful on macOS where Obsidian (Electron) starts with a stripped $PATH that does not include Homebrew or MacTeX. Leave empty to rely on $PATH. Only used when the basename matches the selected PDF engine — switching engines without updating this field falls back to $PATH lookup.',
                     control: {
                         type: 'text',
                         key: 'pdfEnginePath',
@@ -282,8 +372,10 @@ export class BookExporterSettingTab extends PluginSettingTab {
                     }
                 },
                 {
-                    name: 'Extra PATH directories',
-                    desc: 'Optional. Directories prepended to $PATH for pandoc and helper binaries it spawns (typst, xelatex, ...). Use `:` to separate entries on macOS/Linux (e.g. /opt/homebrew/bin:/Library/TeX/texbin), `;` on Windows. Lets pandoc find PDF engines without specifying full paths for each. Leave empty to use the inherited PATH unchanged.',
+                    name: 'Extra PATH directories' + SHARED_SUFFIX,
+                    desc:
+                        SHARED_DESC +
+                        'Optional. Directories prepended to $PATH for pandoc and helper binaries it spawns (typst, xelatex, ...). Use `:` to separate entries on macOS/Linux (e.g. /opt/homebrew/bin:/Library/TeX/texbin), `;` on Windows. Lets pandoc find PDF engines without specifying full paths for each. Leave empty to use the inherited PATH unchanged.',
                     control: {
                         type: 'text',
                         key: 'extraPath',
@@ -294,14 +386,65 @@ export class BookExporterSettingTab extends PluginSettingTab {
         }
     }
 
+    /** One row per field, for the system this device runs. */
+    private currentPlatformRows(fields: PlatformPathKey[]): SettingDefinition[] {
+        const platform = this.plugin.hostPlatform
+        if (platform === null) return []
+        return fields.map((field) => this.platformRow(platform, field, true))
+    }
+
+    private platformRow(
+        platform: HostPlatform,
+        field: PlatformPathKey,
+        current: boolean
+    ): SettingDefinition {
+        const info = PLATFORM_FIELD_INFO[field]
+        const label = PLATFORM_LABELS[platform]
+        return {
+            name: `${info.name} on ${label}${current ? ' (this device)' : ''}`,
+            desc: `${info.what} Used on ${label} only. Leave empty to use the shared value.`,
+            aliases: [info.name, label],
+            control: {
+                type: 'text',
+                key: platformKey(platform, field),
+                placeholder: info.placeholder[platform]
+            }
+        }
+    }
+
+    /**
+     * The other systems' paths, on a sub-page, so that one device can set
+     * them for the others (the settings sync through data.json).
+     */
+    private otherPlatformsPage(): SettingDefinitionItem {
+        const others = HOST_PLATFORMS.filter((p) => p !== this.plugin.hostPlatform)
+        return {
+            type: 'page',
+            name: 'Paths on other systems',
+            desc: `Paths for ${others.map((p) => PLATFORM_LABELS[p]).join(' and ')}, for a vault that syncs between devices. Empty values use the shared paths.`,
+            items: others.map(
+                (platform): SettingDefinitionItem => ({
+                    type: 'group',
+                    heading: PLATFORM_LABELS[platform],
+                    items: (Object.keys(PLATFORM_FIELD_INFO) as PlatformPathKey[]).map((field) =>
+                        this.platformRow(platform, field, false)
+                    )
+                })
+            )
+        }
+    }
+
     private outputGroup(): SettingDefinitionItem {
         return {
             type: 'group',
             heading: 'Output',
             items: [
+                ...this.currentPlatformRows(['defaultOutputDir']),
                 {
-                    name: 'Default output folder',
-                    desc: 'Required. Absolute filesystem path where exported books are written. `~` is expanded to your home directory. The plugin refuses to export until this is set. Example: ~/Downloads or /home/me/Books.',
+                    name: 'Default output folder' + SHARED_SUFFIX,
+                    desc:
+                        SHARED_DESC +
+                        'Required, here or for this system. Absolute filesystem path where exported books are written. `~` is expanded to your home directory. The plugin refuses to export until this is set. Example: ~/Downloads or /home/me/Books.',
                     control: { type: 'text', key: 'defaultOutputDir', placeholder: '~/Downloads' }
                 },
                 {

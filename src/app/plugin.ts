@@ -1,4 +1,4 @@
-import { Notice, Plugin } from 'obsidian'
+import { Notice, Platform, Plugin } from 'obsidian'
 import { promises as fs } from 'node:fs'
 import { produce, type Draft } from 'immer'
 import {
@@ -6,6 +6,12 @@ import {
     createDefaultSettings,
     type PluginSettings
 } from './types/plugin-settings.intf'
+import {
+    detectHostPlatform,
+    normalizePlatformPaths,
+    resolvePlatformSettings,
+    type HostPlatform
+} from './domain/platform-paths'
 import { BookExporterSettingTab } from './settings/settings-tab'
 import { registerCommands } from './commands/commands'
 import { log, setDebugLogging } from '../utils/log'
@@ -24,6 +30,18 @@ export class BookExporterPlugin extends Plugin {
     readonly previewTempDirs = new PreviewTempDirs((dir) =>
         fs.rm(dir, { recursive: true, force: true })
     )
+
+    /** The system this device runs, or `null` when it is none of the three. */
+    readonly hostPlatform: HostPlatform | null = detectHostPlatform(Platform)
+
+    /**
+     * The settings as this system sees them: each path setting takes this
+     * system's own value when it is set, else the shared value. Read paths
+     * through this, never through `settings` directly.
+     */
+    effectiveSettings(): PluginSettings {
+        return resolvePlatformSettings(this.settings, this.hostPlatform)
+    }
 
     override async onload(): Promise<void> {
         // Must run before anything can call saveData (fresh-install detection)
@@ -48,13 +66,12 @@ export class BookExporterPlugin extends Plugin {
      * export commands still fail loudly if a binary disappears later.
      */
     private async runPreflightCheck(): Promise<void> {
-        const env = buildSpawnEnv(this.settings.extraPath)
-        const pandoc = await probeBinary(this.settings.pandocPath, { env })
+        const settings = this.effectiveSettings()
+        const env = buildSpawnEnv(settings.extraPath)
+        const pandoc = await probeBinary(settings.pandocPath, { env })
         if (!pandoc.ok) {
             const where =
-                this.settings.pandocPath === 'pandoc'
-                    ? 'on $PATH'
-                    : `at ${this.settings.pandocPath}`
+                settings.pandocPath === 'pandoc' ? 'on $PATH' : `at ${settings.pandocPath}`
             new Notice(
                 `Book Exporter: pandoc not reachable ${where}. Set Settings → Book Exporter → Pandoc path. (${pandoc.error ?? 'not found'})`,
                 10000
@@ -64,8 +81,8 @@ export class BookExporterPlugin extends Plugin {
             log(`Pandoc OK: ${pandoc.versionLine ?? 'reachable'}`, 'debug')
         }
 
-        const engine = this.settings.defaultPdfEngine
-        const engineBin = resolveEngineBinary(engine, this.settings.pdfEnginePath)
+        const engine = settings.defaultPdfEngine
+        const engineBin = resolveEngineBinary(engine, settings.pdfEnginePath)
         const probe = await probeBinary(engineBin, { env })
         if (!probe.ok) {
             const where = engineBin === engine ? 'on $PATH' : `at ${engineBin}`
@@ -101,6 +118,9 @@ export class BookExporterPlugin extends Plugin {
                 if (value === undefined) continue
                 ;(draft as Record<string, unknown>)[key] = value
             }
+            // Nested: a partial or hand-edited object must not leave a system
+            // or a field undefined.
+            draft.platformPaths = normalizePlatformPaths(loaded.platformPaths)
         })
         setDebugLogging(this.settings.debug)
     }

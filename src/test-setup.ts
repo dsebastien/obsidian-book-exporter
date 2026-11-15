@@ -17,6 +17,8 @@ void mock.module('obsidian', () => ({
     App: class App {},
     TFile: class TFile {},
     Plugin: class Plugin {},
+    // Read by plugin.ts to pick the per-system path settings.
+    Platform: { isWin: false, isMacOS: false, isLinux: true, isDesktopApp: true },
     // The What's new view (reached from plugin.ts) extends ItemView and
     // renders with MarkdownRenderer.
     ItemView: class ItemView {},

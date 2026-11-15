@@ -1,4 +1,5 @@
 import type { ExportFormat, InlinedNoteSeparator, PdfEngine } from '../domain/book-manifest.intf'
+import { createEmptyPlatformPaths, type PlatformPaths } from '../domain/platform-paths'
 
 export interface PluginSettings {
     /** Path or PATH name of the pandoc binary. */
@@ -26,6 +27,13 @@ export interface PluginSettings {
      * configured" — the plugin refuses to export until the user sets it.
      */
     defaultOutputDir: string
+    /**
+     * Per-system values for `pandocPath`, `pdfEnginePath`, `extraPath` and
+     * `defaultOutputDir`. A non-empty value wins over the shared field above
+     * on that system (see `resolvePlatformSettings`). Lets one synced vault
+     * export on Windows, Linux and macOS without editing settings.
+     */
+    platformPaths: PlatformPaths
     defaultPdfEngine: PdfEngine
     defaultLanguage: string
     /**
@@ -171,6 +179,7 @@ export function createDefaultSettings(): PluginSettings {
         pdfEnginePath: '',
         extraPath: '',
         defaultOutputDir: '',
+        platformPaths: createEmptyPlatformPaths(),
         defaultPdfEngine: 'typst',
         defaultLanguage: 'en',
         defaultAuthors: [],
