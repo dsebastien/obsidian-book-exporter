@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/dsebastien/obsidian-book-exporter/compare/1.0.1...1.1.0) (2026-11-15)
+
+### Paths for each system
+
+If your vault syncs between Windows, Linux and macOS, each system can now have its own paths. **Pandoc path**, **PDF engine path**, **Extra PATH directories** and **Default output folder** each have a value per system:
+
+- The rows for the system of your device come first, for example **Pandoc path on Windows (this device)**.
+- **Paths on other systems** opens a page where you set the paths of your other devices.
+- The rows marked **(shared)** apply on every system that has no value of its own.
+
+Your current settings keep working: they become the shared values.
+
 ## [1.0.1](https://github.com/dsebastien/obsidian-book-exporter/compare/1.0.0...1.0.1) (2026-09-28)
 
 ### Bug Fixes
@@ -208,6 +220,7 @@ nothing in CI renders it.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 
