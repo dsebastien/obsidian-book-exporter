@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1](https://github.com/dsebastien/obsidian-book-exporter/compare/1.1.0...1.1.1) (2026-11-15)
+
+### Clearer docs for paths on each system
+
+The user guide and the release notes of 1.1.0 now explain more plainly how paths work when your vault syncs between Windows, Linux and macOS. Nothing changes in the plugin itself.
+
 ## [1.1.0](https://github.com/dsebastien/obsidian-book-exporter/compare/1.0.1...1.1.0) (2026-11-15)
 
 ### Paths for each system
@@ -220,6 +226,7 @@ nothing in CI renders it.
 
 * emit chapter page breaks as format-conditional raw blocks ([860c8e2](https://github.com/dsebastien/obsidian-book-exporter/commit/860c8e216ce3ab69821110fec93ec7911930ca1c))
 * PDF export — URL embeds become links, mainfont/monofont set for Typst ([9aa5ce3](https://github.com/dsebastien/obsidian-book-exporter/commit/9aa5ce30749505a4249c027d55ebb7efb0e6eb01))
+
 
 
 

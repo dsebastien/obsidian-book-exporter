@@ -1,16 +1,22 @@
 # Release Notes
 
+## 1.1.1 (2026-11-15)
+
+### Clearer docs for paths on each system
+
+The user guide and the release notes of 1.1.0 now explain more plainly how paths work when your vault syncs between Windows, Linux and macOS. Nothing changes in the plugin itself.
+
 ## 1.1.0 (2026-11-15)
 
 ### Paths for each system
 
-If your vault syncs between Windows, Linux and macOS, each system can now have its own paths. **Pandoc path**, **PDF engine path**, **Extra PATH directories** and **Default output folder** each have a value per system:
+Does your vault sync between Windows, Linux and macOS? Then each system can now have its own paths. **Pandoc path**, **PDF engine path**, **Extra PATH directories** and **Default output folder** each have one value per system:
 
-- The rows for the system of your device come first, for example **Pandoc path on Windows (this device)**.
-- **Paths on other systems** opens a page where you set the paths of your other devices.
-- The rows marked **(shared)** apply on every system that has no value of its own.
+- The rows for your device's system come first, e.g. **Pandoc path on Windows (this device)**.
+- **Paths on other systems** opens a page where you set the paths of your other systems, from any device.
+- Rows marked **(shared)** apply on every system that has no value of its own. An empty value uses the shared one.
 
-Your current settings keep working: they become the shared values.
+Nothing to do on your side: your current settings keep working and become the shared values.
 
 ## 1.0.1 (2026-09-28)
 
